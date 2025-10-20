@@ -15,7 +15,7 @@ interface DesignCardProps {
   dataNodeId: string;
 }
 
-function DesignCard({ title, subtitle, imageSrc, dataNodeId }: Omit<DesignCardProps, 'id'>) {
+function DesignCard({ id, title, subtitle, imageSrc, dataNodeId }: DesignCardProps) {
   const [isHovered, setIsHovered] = useState(false);
 
   return (
