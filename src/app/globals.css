@@ -33,21 +33,31 @@ html, body, #__next {
   font-family: 'Geist Mono', monospace;
 }
 
-/* Scrolling news animation */
-@keyframes scroll {
-  0% {
-    transform: translateX(100%);
-  }
-  100% {
-    transform: translateX(-100%);
+/* Horizontal scrolling animation */
+@keyframes infiniteScroll {
+  to {
+    transform: translateX(-50%);
   }
 }
 
-.animate-scroll {
-  animation: scroll 60s linear infinite;
-  animation-delay: 0s;
+.horizontal-scrolling-items {
   display: flex;
+  font-size: 12px;
+  width: 2600px;
+  animation-name: infiniteScroll;
+  animation-duration: 30s;
+  animation-iteration-count: infinite;
+  animation-timing-function: linear;
   align-items: center;
   height: 100%;
-  will-change: transform;
+}
+
+.horizontal-scrolling-items__item {
+  white-space: nowrap;
+  font-family: 'Geist Mono', monospace;
+  font-weight: 600;
+  line-height: 16px;
+  color: white;
+  letter-spacing: 0.24px;
+  text-transform: uppercase;
 }

@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import LogoMain from './LogoMain';
 import TabsNavigation from './TabsNavigation';
 import ConnectButton from './ConnectButton';
@@ -11,19 +10,10 @@ import Link from './Link';
 interface SharedLayoutProps {
   children: React.ReactNode;
   selectedTab: 'work' | 'info' | 'resume';
+  onTabChange: (tab: 'work' | 'info' | 'resume') => void;
 }
 
-export default function SharedLayout({ children, selectedTab }: SharedLayoutProps) {
-  const [selectedTabState, setSelectedTabState] = useState<'work' | 'info' | 'resume'>(selectedTab);
-
-  const handleTabChange = (tab: 'work' | 'info' | 'resume') => {
-    setSelectedTabState(tab);
-    if (tab === 'work') {
-      window.location.href = '/';
-    } else if (tab === 'info') {
-      window.location.href = '/about';
-    }
-  };
+export default function SharedLayout({ children, selectedTab, onTabChange }: SharedLayoutProps) {
 
   return (
     <div className="bg-white content-stretch flex flex-col items-start relative size-full md:grid md:grid-cols-[repeat(4,_minmax(0px,_1fr))]">
@@ -56,14 +46,14 @@ export default function SharedLayout({ children, selectedTab }: SharedLayoutProp
       
       {/* Mobile: Right panel - takes remaining space */}
       <div className="basis-0 bg-[#0d0d0d] content-stretch flex flex-col grow items-center min-h-px min-w-px overflow-clip relative shrink-0 w-full md:[grid-area:1_/_2_/_auto_/_span_3] md:h-screen">
-        <div className="basis-0 box-border content-stretch flex flex-col gap-[8px] grow items-start min-h-px min-w-px overflow-x-clip overflow-y-auto p-[8px] relative shrink-0 w-full">
+        <div className="basis-0 box-border content-stretch flex flex-col gap-[8px] grow items-start min-h-px min-w-px overflow-x-clip overflow-y-auto px-[8px] pt-[8px] relative shrink-0 w-full">
           {children}
         </div>
         <div className="box-border content-stretch flex h-[36px] items-end justify-between p-[8px] relative shrink-0 w-full">
           <TabsNavigation 
-            selected={selectedTabState}
+            selected={selectedTab}
             className="content-stretch flex gap-[8px] items-center relative shrink-0"
-            onTabChange={handleTabChange}
+            onTabChange={onTabChange}
           />
           <ConnectButton className="box-border content-stretch cursor-pointer flex items-end justify-end overflow-visible p-0 relative shrink-0"/>
         </div>

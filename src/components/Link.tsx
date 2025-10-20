@@ -9,6 +9,7 @@ interface LinkProps {
   state?: 'default' | 'hover';
   theme?: 'dark' | 'light';
   onClick?: () => void;
+  style?: React.CSSProperties;
 }
 
 export default function Link({ 
@@ -17,7 +18,8 @@ export default function Link({
   href, 
   state = 'default', 
   theme = 'light',
-  onClick 
+  onClick,
+  style 
 }: LinkProps) {
   const [isHovered, setIsHovered] = useState(false);
 
@@ -52,6 +54,7 @@ export default function Link({
     return (
       <span 
         className={`${getLinkStyles()} [text-underline-offset:25%] decoration-solid underline cursor-pointer`}
+        style={style}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         onClick={handleClick}
@@ -68,7 +71,7 @@ export default function Link({
       onMouseLeave={() => setIsHovered(false)}
       onClick={handleClick}
     >
-      <p className={`${getLinkStyles()} [text-underline-offset:25%] decoration-solid underline`}>
+      <p className={`${getLinkStyles()} [text-underline-offset:25%] decoration-solid underline`} style={style}>
         {children}
       </p>
     </div>
