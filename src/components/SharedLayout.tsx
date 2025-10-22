@@ -11,16 +11,20 @@ interface SharedLayoutProps {
   children: React.ReactNode;
   selectedTab: 'work' | 'info' | 'resume';
   onTabChange: (tab: 'work' | 'info' | 'resume') => void;
+  connectToggleTrigger?: number;
 }
 
-export default function SharedLayout({ children, selectedTab, onTabChange }: SharedLayoutProps) {
+export default function SharedLayout({ children, selectedTab, onTabChange, connectToggleTrigger }: SharedLayoutProps) {
 
   return (
     <div className="bg-white content-stretch flex flex-col items-start relative size-full md:grid md:grid-cols-[repeat(4,_minmax(0px,_1fr))]">
       {/* Mobile: Left panel - fixed height 200px */}
       <div className="content-stretch flex flex-col h-[200px] items-start justify-between relative shrink-0 w-full md:[grid-area:1_/_1] md:h-screen">
         <div className="basis-0 box-border content-stretch flex flex-col grow items-start justify-between min-h-px min-w-px p-[8px] relative shrink-0 w-full">
-          <LogoMain className="overflow-clip relative shrink-0 size-[32px]"/>
+          <LogoMain 
+            className="overflow-clip relative shrink-0 size-[32px]"
+            onClick={() => onTabChange('work')}
+          />
           <div className="content-stretch flex flex-col gap-[8px] items-start relative shrink-0 w-full">
             <p className="font-mono font-bold leading-[26px] min-w-full relative shrink-0 text-[#0d0d0d] text-[20px] md:text-[0px] md:text-[22px] uppercase w-[min-content]">
               <span>Dmytro Shvydkyi<br aria-hidden="true"/></span>
@@ -46,7 +50,7 @@ export default function SharedLayout({ children, selectedTab, onTabChange }: Sha
       
       {/* Mobile: Right panel - takes remaining space */}
       <div className="basis-0 bg-[#0d0d0d] content-stretch flex flex-col grow items-center min-h-px min-w-px overflow-clip relative shrink-0 w-full md:[grid-area:1_/_2_/_auto_/_span_3] md:h-screen">
-        <div className="basis-0 box-border content-stretch flex flex-col gap-[8px] grow items-start min-h-px min-w-px overflow-x-clip overflow-y-auto px-[8px] pt-[8px] relative shrink-0 w-full">
+        <div className="basis-0 box-border content-stretch flex flex-col gap-[8px] grow items-start min-h-px min-w-px overflow-x-clip overflow-y-hidden px-[8px] pt-[8px] relative shrink-0 w-full">
           {children}
         </div>
         <div className="box-border content-stretch flex h-[36px] items-end justify-between p-[8px] relative shrink-0 w-full">
@@ -55,7 +59,10 @@ export default function SharedLayout({ children, selectedTab, onTabChange }: Sha
             className="content-stretch flex gap-[8px] items-center relative shrink-0"
             onTabChange={onTabChange}
           />
-          <ConnectButton className="box-border content-stretch cursor-pointer flex items-end justify-end overflow-visible p-0 relative shrink-0"/>
+          <ConnectButton 
+            className="box-border content-stretch cursor-pointer flex items-end justify-end overflow-visible p-0 relative shrink-0"
+            toggleTrigger={connectToggleTrigger}
+          />
         </div>
       </div>
     </div>

@@ -1,12 +1,43 @@
+'use client';
+
+import Image from 'next/image';
+import Link from './Link';
+import { useKeyboardSound } from '@/hooks/useKeyboardSound';
+
 export default function Resume() {
+  const cvUrl = "https://drive.google.com/file/d/1cJfX1qWboU08-4T79WQLlQ8cYeNBuqeP/view?usp=drive_link";
+  const playSound = useKeyboardSound();
+
+  const handleImageClick = () => {
+    playSound();
+  };
+  
   return (
-    <div className="content-stretch flex flex-col gap-[8px] items-start relative shrink-0 w-full">
-      <h1 className="font-mono font-semibold leading-[24px] relative shrink-0 text-[16px] text-white tracking-[0.32px] uppercase">
-        Resume
-      </h1>
-      <p className="font-mono font-normal leading-[20px] relative shrink-0 text-[14px] text-white/80 tracking-[0.28px]">
-        Resume content will go here...
-      </p>
+    <div className="basis-0 box-border content-stretch flex flex-col gap-[8px] grow items-center justify-start min-h-px min-w-px overflow-x-clip overflow-y-auto p-[8px] relative shrink-0 w-full">
+      <div className="content-stretch flex flex-col gap-[16px] items-center justify-center max-w-[400px] my-auto relative shrink-0 w-full">
+        <a 
+          href={cvUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="cursor-pointer"
+          onClick={handleImageClick}
+        >
+          <Image 
+            src="/image-cv.jpg"
+            alt="Resume"
+            width={400}
+            height={566}
+            className="w-full h-auto"
+            unoptimized
+          />
+        </a>
+        <Link 
+          href={cvUrl}
+          theme="dark"
+        >
+          Open
+        </Link>
+      </div>
     </div>
   );
 }
