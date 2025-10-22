@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 
 interface TimeProps {
   className?: string;
@@ -11,24 +11,30 @@ export default function Time({ className }: TimeProps) {
   const [showColon, setShowColon] = useState(true);
   const animationRef = useRef<NodeJS.Timeout | null>(null);
   const realTimeRef = useRef<NodeJS.Timeout | null>(null);
+  const showColonRef = useRef(showColon);
+
+  // Keep ref in sync with state
+  useEffect(() => {
+    showColonRef.current = showColon;
+  }, [showColon]);
+
+  const getRealTime = useCallback(() => {
+    const now = new Date();
+    const kyivTime = new Date(now.toLocaleString("en-US", {timeZone: "Europe/Kiev"}));
+    
+    const hours = kyivTime.getHours().toString().padStart(2, '0');
+    const minutes = kyivTime.getMinutes().toString().padStart(2, '0');
+    
+    return `${hours}${showColonRef.current ? ':' : ' '}${minutes}`;
+  }, []);
+
+  const generateRandomTime = useCallback(() => {
+    const randomHours = Math.floor(Math.random() * 24).toString().padStart(2, '0');
+    const randomMinutes = Math.floor(Math.random() * 60).toString().padStart(2, '0');
+    return `${randomHours}${showColonRef.current ? ':' : ' '}${randomMinutes}`;
+  }, []);
 
   useEffect(() => {
-    const getRealTime = () => {
-      const now = new Date();
-      const kyivTime = new Date(now.toLocaleString("en-US", {timeZone: "Europe/Kiev"}));
-      
-      const hours = kyivTime.getHours().toString().padStart(2, '0');
-      const minutes = kyivTime.getMinutes().toString().padStart(2, '0');
-      
-      return `${hours}${showColon ? ':' : ' '}${minutes}`;
-    };
-
-    const generateRandomTime = () => {
-      const randomHours = Math.floor(Math.random() * 24).toString().padStart(2, '0');
-      const randomMinutes = Math.floor(Math.random() * 60).toString().padStart(2, '0');
-      return `${randomHours}${showColon ? ':' : ' '}${randomMinutes}`;
-    };
-
     // Start animation immediately
     animationRef.current = setInterval(() => {
       setDisplayTime(generateRandomTime());
@@ -58,7 +64,7 @@ export default function Time({ className }: TimeProps) {
       if (realTimeRef.current) clearInterval(realTimeRef.current);
       clearInterval(colonInterval);
     };
-  }, [showColon]);
+  }, [getRealTime, generateRandomTime]);
 
   return (
     <div className={`${className} px-2`} data-name="time" data-node-id="622:1571">
