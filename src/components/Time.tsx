@@ -9,7 +9,6 @@ interface TimeProps {
 export default function Time({ className }: TimeProps) {
   const [displayTime, setDisplayTime] = useState('00:00');
   const [showColon, setShowColon] = useState(true);
-  const [isAnimating, setIsAnimating] = useState(true);
   const animationRef = useRef<NodeJS.Timeout | null>(null);
   const realTimeRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -41,7 +40,6 @@ export default function Time({ className }: TimeProps) {
         clearInterval(animationRef.current);
         animationRef.current = null;
       }
-      setIsAnimating(false);
       setDisplayTime(getRealTime());
       
       // Start real time updates
@@ -60,7 +58,7 @@ export default function Time({ className }: TimeProps) {
       if (realTimeRef.current) clearInterval(realTimeRef.current);
       clearInterval(colonInterval);
     };
-  }, []);
+  }, [showColon]);
 
   return (
     <div className={`${className} px-2`} data-name="time" data-node-id="622:1571">

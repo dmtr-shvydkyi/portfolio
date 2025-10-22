@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useKeyboardSound } from '@/hooks/useKeyboardSound';
 
 interface TabsNavigationProps {
   className?: string;
@@ -17,33 +18,54 @@ interface TabProps {
 
 function Tab({ id, label, isSelected, onClick }: TabProps) {
   const [isHovered, setIsHovered] = useState(false);
+  const [isPressed, setIsPressed] = useState(false);
+  const playSound = useKeyboardSound();
 
   const getTabStyles = () => {
+    const baseStyles = "box-border content-stretch flex gap-[8px] items-center justify-center px-[4px] py-[2px] relative shrink-0 cursor-pointer transition-all duration-200";
+    const scaleClass = isPressed ? "scale-95" : "";
     if (isSelected) {
-      return "bg-white box-border content-stretch flex gap-[8px] items-center justify-center px-[4px] py-[2px] relative shrink-0 cursor-pointer";
+      return `${baseStyles} bg-white ${scaleClass}`;
     }
     if (isHovered) {
-      return "box-border content-stretch flex gap-[8px] items-center justify-center px-[4px] py-[2px] relative shrink-0 cursor-pointer bg-white/10";
+      return `${baseStyles} bg-white/10 ${scaleClass}`;
     }
-    return "box-border content-stretch flex gap-[8px] items-center justify-center px-[4px] py-[2px] relative shrink-0 cursor-pointer";
+    return `${baseStyles} ${scaleClass}`;
   };
 
   const getTextStyles = () => {
+    const baseStyles = "font-mono font-semibold leading-[16px] relative shrink-0 text-[12px] text-nowrap tracking-[0.24px] uppercase whitespace-pre transition-all duration-200";
     if (isSelected) {
-      return "font-mono font-semibold leading-[16px] relative shrink-0 text-[12px] text-[rgba(13,13,13,0.88)] text-nowrap tracking-[0.24px] uppercase whitespace-pre";
+      return `${baseStyles} text-[rgba(13,13,13,0.88)]`;
     }
     if (isHovered) {
-      return "font-mono font-semibold leading-[16px] relative shrink-0 text-[12px] text-[rgba(255,255,255,0.6)] text-nowrap tracking-[0.24px] uppercase whitespace-pre";
+      return `${baseStyles} text-[rgba(255,255,255,0.6)]`;
     }
-    return "font-mono font-semibold leading-[16px] relative shrink-0 text-[12px] text-[rgba(255,255,255,0.32)] text-nowrap tracking-[0.24px] uppercase whitespace-pre";
+    return `${baseStyles} text-[rgba(255,255,255,0.32)]`;
+  };
+
+  const handleMouseDown = () => {
+    setIsPressed(true);
+  };
+
+  const handleMouseUp = () => {
+    setIsPressed(false);
+    playSound();
+    onClick();
+  };
+
+  const handleMouseLeave = () => {
+    setIsHovered(false);
+    setIsPressed(false);
   };
 
   return (
     <div 
       className={getTabStyles()}
-      onClick={onClick}
+      onMouseDown={handleMouseDown}
+      onMouseUp={handleMouseUp}
       onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseLeave={handleMouseLeave}
       data-name={`tab-${id}`}
     >
       <p className={getTextStyles()}>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useKeyboardSound } from '@/hooks/useKeyboardSound';
 
 interface LinkProps {
   className?: string;
@@ -12,34 +13,37 @@ interface LinkProps {
   style?: React.CSSProperties;
 }
 
-export default function Link({ 
-  className, 
-  children, 
-  href, 
-  state = 'default', 
+export default function Link({
+  className,
+  children,
+  href,
+  state = 'default',
   theme = 'light',
   onClick,
-  style 
+  style
 }: LinkProps) {
   const [isHovered, setIsHovered] = useState(false);
+  const playSound = useKeyboardSound();
 
   const getLinkStyles = () => {
     const isHover = state === 'hover' || isHovered;
+    const baseStyles = "font-mono font-semibold leading-[16px] relative shrink-0 text-[12px] text-nowrap tracking-[0.24px] uppercase whitespace-pre cursor-pointer transition-all duration-200";
     
     if (theme === 'dark') {
       if (isHover) {
-        return "font-mono font-semibold leading-[16px] relative shrink-0 text-[12px] text-white text-nowrap tracking-[0.24px] uppercase whitespace-pre cursor-pointer";
+        return `${baseStyles} text-white`;
       }
-      return "font-mono font-semibold leading-[16px] relative shrink-0 text-[12px] text-white text-nowrap tracking-[0.24px] uppercase whitespace-pre cursor-pointer";
+      return `${baseStyles} text-[rgba(255,255,255,0.32)]`;
     } else {
       if (isHover) {
-        return "font-mono font-semibold leading-[16px] relative shrink-0 text-[12px] text-[rgba(13,13,13,0.64)] text-nowrap tracking-[0.24px] uppercase whitespace-pre cursor-pointer";
+        return `${baseStyles} text-[rgba(13,13,13,0.64)]`;
       }
-      return "font-mono font-semibold leading-[16px] relative shrink-0 text-[12px] text-[rgba(13,13,13,0.32)] text-nowrap tracking-[0.24px] uppercase whitespace-pre cursor-pointer";
+      return `${baseStyles} text-[rgba(13,13,13,0.32)]`;
     }
   };
 
   const handleClick = () => {
+    playSound();
     if (onClick) {
       onClick();
     }

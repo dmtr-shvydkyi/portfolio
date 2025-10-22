@@ -6,7 +6,7 @@ interface RunningNewsProps {
 }
 
 export default function RunningNews({ className }: RunningNewsProps) {
-  const text = "work in progress ⋅  ";
+  const text = "always under construction ⋅ ";
   const repeatedText = text.repeat(8); // Repeat the text multiple times for seamless scrolling
 
   return (
