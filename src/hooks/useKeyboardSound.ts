@@ -5,7 +5,7 @@ export function useKeyboardSound() {
     if (typeof window === 'undefined') return;
     
     try {
-      const audioContext = new (window.AudioContext || (window as Window & { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+      const audioContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
       const now = audioContext.currentTime;
       
       // Randomly select one of 5 keyboard sound variations
