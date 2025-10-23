@@ -51,7 +51,6 @@ function DesignCard({ title, subtitle, mediaSrc, links, dataNodeId }: DesignCard
             className="absolute max-w-none object-50%-50% object-cover size-full" 
             src={mediaSrc}
             fill
-            unoptimized
           />
         )}
       </div>

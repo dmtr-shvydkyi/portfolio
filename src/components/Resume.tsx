@@ -28,7 +28,6 @@ export default function Resume() {
             width={400}
             height={566}
             className="w-full h-auto"
-            unoptimized
           />
         </a>
         <Link 

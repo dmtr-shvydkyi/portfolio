@@ -13,6 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://shvydkyi.me'),
   title: "Dmytro Shvydkyi",
   description: "Product Designer based in Kyiv, Ukraine",
   icons: {
@@ -29,7 +30,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Dmytro Shvydkyi",
     description: "Product Designer based in Kyiv, Ukraine",
-    url: 'https://shvydkyi.com',
+    url: 'https://shvydkyi.me',
     siteName: 'Dmytro Shvydkyi',
     images: [
       {
