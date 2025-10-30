@@ -16,18 +16,11 @@ export const metadata: Metadata = {
   metadataBase: new URL('https://shvydkyi.me'),
   title: "Dmytro Shvydkyi",
   description: "Product Designer based in Kyiv, Ukraine",
-  icons: {
-    icon: [
-      { url: '/favicon.ico' },
-      { url: '/favicon/favicon.ico' },
-      { url: '/favicon/favicon-96x96.png', sizes: '96x96', type: 'image/png' },
-    ],
-    apple: '/favicon/apple-touch-icon.png',
-    other: [
-      { rel: 'icon', type: 'image/svg+xml', url: '/favicon/favicon.svg' },
-    ],
-  },
-  manifest: '/favicon/site.webmanifest',
+  // Let App Router file-based metadata handle icons placed in `src/app`:
+  // - `src/app/favicon.ico`
+  // - `src/app/apple-icon.png`
+  // - optional: `src/app/icon.png` or `src/app/icon.svg`
+  manifest: '/manifest.json',
   openGraph: {
     title: "Dmytro Shvydkyi",
     description: "Product Designer based in Kyiv, Ukraine",

@@ -1,0 +1,18 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "pwa-chrome",
+      "request": "launch",
+      "name": "Open localhost:3000",
+      "url": "http://localhost:3000",
+      "preLaunchTask": "Dev server",
+      "serverReadyAction": {
+        "pattern": "http://localhost:3000",
+        "action": "openExternally",
+        "uriFormat": "http://localhost:3000"
+      }
+    }
+  ]
+}
+

@@ -1,0 +1,26 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Dev server",
+      "type": "npm",
+      "script": "dev",
+      "problemMatcher": [],
+      "isBackground": true,
+      "runOptions": { "runOn": "folderOpen" }
+    },
+    {
+      "label": "Open browser (after server ready)",
+      "type": "shell",
+      "command": "bash",
+      "args": [
+        "-lc",
+        "until nc -z localhost 3000; do sleep 0.5; done; open http://localhost:3000"
+      ],
+      "dependsOn": "Dev server",
+      "problemMatcher": [],
+      "runOptions": { "runOn": "folderOpen" }
+    }
+  ]
+}
+
