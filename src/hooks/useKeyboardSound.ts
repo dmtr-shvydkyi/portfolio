@@ -1,11 +1,33 @@
 import { useCallback } from 'react';
 
+// Reuse a single AudioContext to avoid hitting browser limits on rapid clicks
+let sharedAudioContext: (AudioContext | null) = null;
+
+function getSharedAudioContext(): AudioContext | null {
+  if (typeof window === 'undefined') return null;
+  if (sharedAudioContext && sharedAudioContext.state !== 'closed') {
+    return sharedAudioContext;
+  }
+  try {
+    const Ctx = (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext);
+    sharedAudioContext = new Ctx();
+    return sharedAudioContext;
+  } catch {
+    return null;
+  }
+}
+
 export function useKeyboardSound() {
   const playSound = useCallback(() => {
-    if (typeof window === 'undefined') return;
-    
+    const audioContext = getSharedAudioContext();
+    if (!audioContext) return;
+
     try {
-      const audioContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+      // Ensure context is running (browsers can suspend it on inactivity)
+      if (audioContext.state === 'suspended') {
+        // Fire and forget; subsequent scheduling uses currentTime which will advance after resume
+        void audioContext.resume();
+      }
       const now = audioContext.currentTime;
       
       // Randomly select one of 5 keyboard sound variations
