@@ -8,11 +8,12 @@ type Direction = 'up' | 'down' | 'left' | 'right';
 type Position = { x: number; y: number };
 
 const GRID_SIZE = 25;
-const CELL_SIZE = 16;
+const BASE_CELL_SIZE = 16;
 const GAME_SPEED = 150;
 
 export default function Play() {
   const [gameState, setGameState] = useState<GameState>('idle');
+  const [actualCellSize, setActualCellSize] = useState(BASE_CELL_SIZE);
   const [score, setScore] = useState(0);
   const [bestScore, setBestScore] = useState(0);
   const [snake, setSnake] = useState<Position[]>([]);
@@ -85,6 +86,22 @@ export default function Play() {
   useEffect(() => {
     foodRef.current = food;
   }, [food]);
+
+  // Calculate actual cell size based on rendered board size
+  useEffect(() => {
+    const calculateCellSize = () => {
+      const gameBoard = document.querySelector('[data-game-board]');
+      if (gameBoard) {
+        const actualWidth = gameBoard.getBoundingClientRect().width;
+        const newCellSize = actualWidth / GRID_SIZE;
+        setActualCellSize(newCellSize);
+      }
+    };
+
+    calculateCellSize();
+    window.addEventListener('resize', calculateCellSize);
+    return () => window.removeEventListener('resize', calculateCellSize);
+  }, [gameState]); // Recalculate when game state changes
 
 
 
@@ -449,17 +466,20 @@ export default function Play() {
               </p>
             </div>
           </div>
-          <div className="bg-[rgba(255,255,255,0.02)] border-2 border-[rgba(255,255,255,0.02)] border-solid h-[400px] w-[400px] max-w-[90vw] max-h-[90vw] relative shrink-0 mx-auto">
+          <div 
+            className="bg-[rgba(255,255,255,0.02)] border-2 border-[rgba(255,255,255,0.02)] border-solid h-[400px] w-[400px] max-w-[90vw] max-h-[90vw] relative shrink-0 mx-auto aspect-square overflow-hidden"
+            data-game-board
+          >
             {/* Snake segments */}
             {snake.map((segment, index) => (
               <div
                 key={`snake-${index}`}
                 className="absolute bg-[rgba(255,255,255,0.16)]"
                 style={{
-                  left: `${segment.x * CELL_SIZE}px`,
-                  top: `${segment.y * CELL_SIZE}px`,
-                  width: `${CELL_SIZE}px`,
-                  height: `${CELL_SIZE}px`,
+                  left: `${segment.x * actualCellSize}px`,
+                  top: `${segment.y * actualCellSize}px`,
+                  width: `${actualCellSize}px`,
+                  height: `${actualCellSize}px`,
                 }}
               />
             ))}
@@ -467,10 +487,10 @@ export default function Play() {
             <div
               className="absolute bg-white"
               style={{
-                left: `${food.x * CELL_SIZE}px`,
-                top: `${food.y * CELL_SIZE}px`,
-                width: `${CELL_SIZE}px`,
-                height: `${CELL_SIZE}px`,
+                left: `${food.x * actualCellSize}px`,
+                top: `${food.y * actualCellSize}px`,
+                width: `${actualCellSize}px`,
+                height: `${actualCellSize}px`,
               }}
             />
           </div>
