@@ -4,11 +4,12 @@ import { useState, useEffect } from 'react';
 import SharedLayout from '@/components/SharedLayout';
 import Work from '@/components/Work';
 import About from '@/components/About';
+import Play from '@/components/Play';
 import Resume from '@/components/Resume';
 import { useKeyboardSound } from '@/hooks/useKeyboardSound';
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<'work' | 'info' | 'resume'>('work');
+  const [activeTab, setActiveTab] = useState<'work' | 'info' | 'play' | 'resume'>('work');
   const [connectToggleTrigger, setConnectToggleTrigger] = useState(0);
   const [isLoaded, setIsLoaded] = useState(false);
   const playSound = useKeyboardSound();
@@ -36,9 +37,13 @@ export default function Home() {
           break;
         case '3':
           playSound();
-          setActiveTab('resume');
+          setActiveTab('play');
           break;
         case '4':
+          playSound();
+          setActiveTab('resume');
+          break;
+        case '5':
           playSound();
           // Trigger connect button toggle
           setConnectToggleTrigger(prev => prev + 1);
@@ -49,7 +54,8 @@ export default function Home() {
           setActiveTab(prev => {
             if (prev === 'work') return 'resume';
             if (prev === 'info') return 'work';
-            return 'info';
+            if (prev === 'play') return 'info';
+            return 'play';
           });
           break;
         case 'ArrowRight':
@@ -57,7 +63,8 @@ export default function Home() {
           playSound();
           setActiveTab(prev => {
             if (prev === 'work') return 'info';
-            if (prev === 'info') return 'resume';
+            if (prev === 'info') return 'play';
+            if (prev === 'play') return 'resume';
             return 'work';
           });
           break;
@@ -66,7 +73,7 @@ export default function Home() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [playSound]);
+  }, [playSound, activeTab]);
 
   return (
     <div className="relative size-full">
@@ -91,6 +98,11 @@ export default function Home() {
             className={`absolute inset-0 flex transition-opacity duration-300 ${activeTab === 'info' ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
           >
             <About />
+          </div>
+          <div 
+            className={`absolute inset-0 flex transition-opacity duration-300 ${activeTab === 'play' ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+          >
+            <Play />
           </div>
           <div 
             className={`absolute inset-0 flex transition-opacity duration-300 ${activeTab === 'resume' ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}

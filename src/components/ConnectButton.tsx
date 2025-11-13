@@ -32,17 +32,17 @@ export default function ConnectButton({ className, state = "default", toggleTrig
     const baseStyles = "box-border content-stretch flex gap-[8px] items-center justify-center px-[4px] py-[2px] relative shrink-0 cursor-pointer transition-all duration-200";
     const scaleClass = isConnectPressed ? "scale-95" : "";
     if (isHovered) {
-      return `${baseStyles} bg-white/10 ${scaleClass}`;
+      return `${baseStyles} bg-[rgba(255,255,255,0.80)] ${scaleClass}`;
     }
-    return `${baseStyles} ${scaleClass}`;
+    return `${baseStyles} bg-white ${scaleClass}`;
   };
 
   const getTextStyles = () => {
     const baseStyles = "font-mono font-semibold leading-[16px] relative shrink-0 text-[12px] text-nowrap tracking-[0.24px] uppercase whitespace-pre transition-all duration-200";
     if (isHovered) {
-      return `${baseStyles} text-[rgba(255,255,255,0.6)]`;
+      return `${baseStyles} text-[rgba(13,13,13,0.64)]`;
     }
-    return `${baseStyles} text-[rgba(255,255,255,0.32)]`;
+    return `${baseStyles} text-[rgba(13,13,13,0.88)]`;
   };
 
   const handleConnectMouseDown = () => {
@@ -79,7 +79,7 @@ export default function ConnectButton({ className, state = "default", toggleTrig
     <div className={`${className} relative overflow-hidden`}>
       {/* Opened state */}
       <div 
-        className={`bg-white content-stretch flex flex-col gap-[4px] items-end justify-end absolute right-0 bottom-0 transition-opacity ease-in-out ${isOpened ? 'opacity-100 duration-300' : 'opacity-0 duration-150 pointer-events-none'}`}
+        className={`bg-white content-stretch flex flex-col gap-[4px] items-end justify-end absolute right-0 bottom-0 transition-opacity ease-in-out z-50 ${isOpened ? 'opacity-100 duration-300' : 'opacity-0 duration-150 pointer-events-none'}`}
         style={{ width: '83px' }}
         data-name="state=opened" 
         data-node-id="590:10363"
@@ -93,7 +93,7 @@ export default function ConnectButton({ className, state = "default", toggleTrig
               onClick={playSound}
               className="font-mono font-semibold leading-[16px] relative shrink-0 text-[12px] text-[rgba(13,13,13,0.32)] text-nowrap tracking-[0.24px] uppercase whitespace-pre cursor-pointer hover:text-[rgba(13,13,13,0.64)] [text-underline-offset:25%] decoration-solid underline transition-all duration-200"
             >
-              linkedin
+              LINKEDIN
             </a>
           </div>
           <div className="content-stretch flex gap-[8px] items-center justify-center relative shrink-0" data-name="link" data-node-id="590:10352">
@@ -104,7 +104,7 @@ export default function ConnectButton({ className, state = "default", toggleTrig
               onClick={playSound}
               className="font-mono font-semibold leading-[16px] relative shrink-0 text-[12px] text-[rgba(13,13,13,0.32)] text-nowrap tracking-[0.24px] uppercase whitespace-pre cursor-pointer hover:text-[rgba(13,13,13,0.64)] [text-underline-offset:25%] decoration-solid underline transition-all duration-200"
             >
-              Twitter
+              TWITTER
             </a>
           </div>
           <div className="content-stretch flex gap-[8px] items-center justify-center relative shrink-0" data-name="link" data-node-id="590:10353">
@@ -113,7 +113,7 @@ export default function ConnectButton({ className, state = "default", toggleTrig
               onClick={playSound}
               className="font-mono font-semibold leading-[16px] relative shrink-0 text-[12px] text-[rgba(13,13,13,0.32)] text-nowrap tracking-[0.24px] uppercase whitespace-pre cursor-pointer hover:text-[rgba(13,13,13,0.64)] [text-underline-offset:25%] decoration-solid underline transition-all duration-200"
             >
-              email
+              EMAIL
             </a>
           </div>
         </div>
@@ -127,7 +127,7 @@ export default function ConnectButton({ className, state = "default", toggleTrig
           onMouseLeave={handleCloseMouseLeave}
         >
           <p className={`font-mono font-semibold leading-[16px] relative shrink-0 text-[12px] text-nowrap tracking-[0.24px] uppercase whitespace-pre transition-all duration-200 ${isCloseHovered ? 'text-[rgba(13,13,13,0.48)]' : 'text-[rgba(13,13,13,0.88)]'}`} data-node-id="I590:10425;590:10417">
-            Close
+            CLOSE
           </p>
         </button>
       </div>
@@ -144,7 +144,7 @@ export default function ConnectButton({ className, state = "default", toggleTrig
       >
         <div className={getButtonStyles()} data-name="tab" data-node-id="590:10359">
           <p className={getTextStyles()} data-node-id="I590:10359;550:35887">
-            04 Connect
+            CONNECT
           </p>
         </div>
       </button>

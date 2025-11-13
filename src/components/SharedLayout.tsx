@@ -9,8 +9,8 @@ import Link from './Link';
 
 interface SharedLayoutProps {
   children: React.ReactNode;
-  selectedTab: 'work' | 'info' | 'resume';
-  onTabChange: (tab: 'work' | 'info' | 'resume') => void;
+  selectedTab: 'work' | 'info' | 'play' | 'resume';
+  onTabChange: (tab: 'work' | 'info' | 'play' | 'resume') => void;
   connectToggleTrigger?: number;
 }
 

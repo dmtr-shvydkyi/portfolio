@@ -5,12 +5,12 @@ import { useKeyboardSound } from '@/hooks/useKeyboardSound';
 
 interface TabsNavigationProps {
   className?: string;
-  selected?: 'work' | 'info' | 'resume';
-  onTabChange?: (tab: 'work' | 'info' | 'resume') => void;
+  selected?: 'work' | 'info' | 'play' | 'resume';
+  onTabChange?: (tab: 'work' | 'info' | 'play' | 'resume') => void;
 }
 
 interface TabProps {
-  id: 'work' | 'info' | 'resume';
+  id: 'work' | 'info' | 'play' | 'resume';
   label: string;
   isSelected: boolean;
   onClick: () => void;
@@ -77,9 +77,10 @@ function Tab({ id, label, isSelected, onClick }: TabProps) {
 
 export default function TabsNavigation({ className, selected = "work", onTabChange }: TabsNavigationProps) {
   const tabs = [
-    { id: 'work' as const, label: '01 Work' },
-    { id: 'info' as const, label: '02 Info' },
-    { id: 'resume' as const, label: '03 Resume' }
+    { id: 'work' as const, label: 'WORK' },
+    { id: 'info' as const, label: 'ABOUT' },
+    { id: 'play' as const, label: 'PLAY' },
+    { id: 'resume' as const, label: 'CV' }
   ];
 
   return (
