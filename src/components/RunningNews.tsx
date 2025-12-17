@@ -6,8 +6,9 @@ interface RunningNewsProps {
 }
 
 export default function RunningNews({ className }: RunningNewsProps) {
-  const text = "always under construction ⋅ ";
-  const repeatedText = text.repeat(8); // Repeat the text multiple times for seamless scrolling
+  // Add space at beginning so when looping: "⋅ " connects seamlessly to " always"
+  const text = " always under construction ⋅ ";
+  const repeatedText = text.repeat(8);
 
   return (
     <div className={`${className} overflow-hidden`} data-name="State=1" data-node-id="622:1625">

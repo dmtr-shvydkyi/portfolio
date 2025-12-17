@@ -31,9 +31,9 @@ export default function Link({
     
     if (theme === 'dark') {
       if (isHover) {
-        return `${baseStyles} text-white`;
+        return `${baseStyles} text-[rgba(255,255,255,0.7)]`;
       }
-      return `${baseStyles} text-[rgba(255,255,255,0.32)]`;
+      return `${baseStyles} text-white`;
     } else {
       if (isHover) {
         return `${baseStyles} text-[rgba(13,13,13,0.64)]`;
