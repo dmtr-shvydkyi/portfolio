@@ -38,11 +38,11 @@ body,
 /* Horizontal scrolling animation */
 @keyframes infiniteScroll {
   from {
-    transform: translateX(0);
+    transform: translate3d(0, 0, 0);
   }
 
   to {
-    transform: translateX(-50%);
+    transform: translate3d(-50%, 0, 0);
   }
 }
 
@@ -51,11 +51,19 @@ body,
   font-size: 12px;
   width: fit-content;
   animation-name: infiniteScroll;
-  animation-duration: 30s;
+  animation-duration: var(--running-news-duration, 30s);
   animation-iteration-count: infinite;
   animation-timing-function: linear;
   align-items: center;
   height: 100%;
+}
+
+
+@media (prefers-reduced-motion: reduce) {
+  .horizontal-scrolling-items {
+    animation: none;
+    transform: translate3d(0, 0, 0);
+  }
 }
 
 .horizontal-scrolling-items__item {

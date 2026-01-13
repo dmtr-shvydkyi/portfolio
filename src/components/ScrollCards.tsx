@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from './Link';
 
@@ -24,6 +24,29 @@ interface DesignCardProps {
 function DesignCard({ title, subtitle, mediaSrc, links, dataNodeId }: DesignCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const isVideo = mediaSrc.endsWith('.mp4') || mediaSrc.endsWith('.mov');
+  const [isMediaLoaded, setIsMediaLoaded] = useState(isVideo);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const videoType = mediaSrc.endsWith('.mov') ? 'video/quicktime' : 'video/mp4';
+
+  useEffect(() => {
+    if (!isVideo) return;
+    const video = videoRef.current;
+    if (!video) return;
+
+    const tryPlay = () => {
+      const playPromise = video.play();
+      if (playPromise && typeof playPromise.catch === 'function') {
+        playPromise.catch(() => {});
+      }
+    };
+
+    tryPlay();
+    const handleCanPlay = () => tryPlay();
+    video.addEventListener('canplay', handleCanPlay);
+    return () => {
+      video.removeEventListener('canplay', handleCanPlay);
+    };
+  }, [isVideo, mediaSrc]);
 
   return (
     <div 
@@ -37,20 +60,30 @@ function DesignCard({ title, subtitle, mediaSrc, links, dataNodeId }: DesignCard
         <div className="absolute bg-[#0f0f0f] inset-0"/>
         {isVideo ? (
           <video 
-            className="absolute max-w-none object-50%-50% object-cover size-full"
-            src={mediaSrc}
+            ref={videoRef}
+            className={`absolute max-w-none object-50%-50% object-cover size-full transition-opacity duration-500 ease-out ${isMediaLoaded ? 'opacity-100' : 'opacity-0'}`}
             autoPlay
             loop
             muted
             playsInline
-            onError={(e) => console.error('Video load error:', mediaSrc, e)}
-          />
+            preload="auto"
+            onError={(e) => {
+              console.error('Video load error:', mediaSrc, e);
+              setIsMediaLoaded(true);
+            }}
+            onLoadedData={() => setIsMediaLoaded(true)}
+            onLoadedMetadata={() => setIsMediaLoaded(true)}
+            onCanPlay={() => setIsMediaLoaded(true)}
+          >
+            <source src={mediaSrc} type={videoType} />
+          </video>
         ) : (
           <Image 
             alt={title} 
-            className="absolute max-w-none object-50%-50% object-cover size-full" 
+            className={`absolute max-w-none object-50%-50% object-cover size-full transition-opacity duration-500 ease-out ${isMediaLoaded ? 'opacity-100' : 'opacity-0'}`} 
             src={mediaSrc}
             fill
+            onLoadingComplete={() => setIsMediaLoaded(true)}
           />
         )}
       </div>
@@ -105,7 +138,7 @@ export default function ScrollCards({ className }: ScrollCardsProps) {
     {
       title: "AI Bookshelf",
       subtitle: "Concept",
-      mediaSrc: "/bookshelf-video.mov",
+      mediaSrc: "/bookshelf-video.mp4",
       links: [
         { text: "Prototype", url: "https://www.figma.com/proto/xjXvLIAJJBnI7DXaygTmBD/AI-Chatbot-–-My-Library?page-id=0:1&type=design&node-id=14-3236&viewport=2393,-189,0.27&t=GE4OHunispbOMFVg-1&scaling=scale-down&starting-point-node-id=14:3236" }
       ],

@@ -3,31 +3,37 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useKeyboardSound } from '@/hooks/useKeyboardSound';
 
-type GameState = 'idle' | 'playing' | 'gameOver';
+type GameState = 'idle' | 'playing' | 'paused' | 'gameOver';
 type Direction = 'up' | 'down' | 'left' | 'right';
 type Position = { x: number; y: number };
 
 const GRID_SIZE = 25;
 const BASE_CELL_SIZE = 16;
-const GAME_SPEED = 150;
+const BASE_GAME_SPEED = 150;
+const MIN_GAME_SPEED = 70;
+const SPEED_STEP_MS = 10;
+const FOODS_PER_SPEED_STEP = 4;
 
 export default function Play() {
   const [gameState, setGameState] = useState<GameState>('idle');
   const [actualCellSize, setActualCellSize] = useState(BASE_CELL_SIZE);
+  const [speed, setSpeed] = useState(BASE_GAME_SPEED);
   const [score, setScore] = useState(0);
   const [bestScore, setBestScore] = useState(0);
   const [snake, setSnake] = useState<Position[]>([]);
   const [food, setFood] = useState<Position>({ x: 0, y: 0 });
   const [direction, setDirection] = useState<Direction>('right');
-  const [nextDirection, setNextDirection] = useState<Direction>('right');
   const [isHovered, setIsHovered] = useState(false);
   const [isPressed, setIsPressed] = useState(false);
   const [isNewBestScore, setIsNewBestScore] = useState(false);
   const [pressedKey, setPressedKey] = useState<string | null>(null);
+  const [isMobileControls, setIsMobileControls] = useState(false);
   
-  const gameLoopRef = useRef<NodeJS.Timeout | null>(null);
+  const gameLoopRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const nextDirectionRef = useRef<Direction>('right');
+  const snakeRef = useRef<Position[]>([]);
   const foodRef = useRef<Position>({ x: 0, y: 0 });
+  const boardRef = useRef<HTMLDivElement | null>(null);
   const playSound = useKeyboardSound();
   
   // Sound effects
@@ -82,21 +88,50 @@ export default function Play() {
     }
   }, [gameState, score]);
 
+  // Dynamically adjust speed as the score grows
+  useEffect(() => {
+    const steps = Math.floor(score / FOODS_PER_SPEED_STEP);
+    const nextSpeed = Math.max(BASE_GAME_SPEED - steps * SPEED_STEP_MS, MIN_GAME_SPEED);
+    setSpeed(nextSpeed);
+  }, [score]);
+
+  // Detect mobile / coarse pointers for D-pad visibility
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const mediaQuery = window.matchMedia('(pointer: coarse)');
+    const updateControls = () => setIsMobileControls(mediaQuery.matches);
+    updateControls();
+    mediaQuery.addEventListener('change', updateControls);
+    return () => mediaQuery.removeEventListener('change', updateControls);
+  }, []);
+
   // Keep food ref in sync with food state
   useEffect(() => {
     foodRef.current = food;
   }, [food]);
 
+  // Keep snake ref in sync with snake state
+  useEffect(() => {
+    snakeRef.current = snake;
+  }, [snake]);
+
   // Calculate actual cell size based on rendered board size
   useEffect(() => {
+    const gameBoard = boardRef.current;
+    if (!gameBoard) return;
+
     const calculateCellSize = () => {
-      const gameBoard = document.querySelector('[data-game-board]');
-      if (gameBoard) {
-        const actualWidth = gameBoard.getBoundingClientRect().width;
-        const newCellSize = actualWidth / GRID_SIZE;
-        setActualCellSize(newCellSize);
-      }
+      const actualWidth = gameBoard.clientWidth;
+      const newCellSize = actualWidth / GRID_SIZE;
+      setActualCellSize(newCellSize);
     };
+
+    if (typeof ResizeObserver !== 'undefined') {
+      const resizeObserver = new ResizeObserver(calculateCellSize);
+      resizeObserver.observe(gameBoard);
+      calculateCellSize();
+      return () => resizeObserver.disconnect();
+    }
 
     calculateCellSize();
     window.addEventListener('resize', calculateCellSize);
@@ -141,95 +176,82 @@ export default function Play() {
 
   // Game update logic
   const updateGame = useCallback(() => {
-    setSnake(prevSnake => {
-      const currentDirection = nextDirectionRef.current;
-      setDirection(currentDirection);
-      
-      const head = { ...prevSnake[0] };
-      
-      // Move head based on direction
-      switch (currentDirection) {
-        case 'up':
-          head.y -= 1;
-          break;
-        case 'down':
-          head.y += 1;
-          break;
-        case 'left':
-          head.x -= 1;
-          break;
-        case 'right':
-          head.x += 1;
-          break;
-      }
+    const prevSnake = snakeRef.current;
+    if (!prevSnake.length) return;
 
-      // Check collision
-      if (checkCollision(head, prevSnake)) {
-        // Game over
-        setGameState('gameOver');
-        if (gameLoopRef.current) {
-          clearInterval(gameLoopRef.current);
-          gameLoopRef.current = null;
-        }
-        
-        // Play dead sound
-        if (deadSoundRef.current) {
-          deadSoundRef.current.currentTime = 0;
-          deadSoundRef.current.play().catch(console.error);
-        }
-        
-        return prevSnake;
-      }
+    const currentDirection = nextDirectionRef.current;
+    setDirection(currentDirection);
+    
+    const head = { ...prevSnake[0] };
+    
+    // Move head based on direction
+    switch (currentDirection) {
+      case 'up':
+        head.y -= 1;
+        break;
+      case 'down':
+        head.y += 1;
+        break;
+      case 'left':
+        head.x -= 1;
+        break;
+      case 'right':
+        head.x += 1;
+        break;
+    }
 
-      // Check if food eaten - use ref to get current food position
-      const currentFood = foodRef.current;
-      const ateFood = head.x === currentFood.x && head.y === currentFood.y;
-      
-      if (ateFood) {
-        // Play eat sound
-        if (eatSoundRef.current) {
-          eatSoundRef.current.currentTime = 0;
-          eatSoundRef.current.play().catch(console.error);
-        }
-        
-        // Update score
-        setScore(prevScore => prevScore + 1);
-        
-        // Snake grows: add new head, keep all previous segments (don't remove tail)
-        const newSnake = [head, ...prevSnake];
-        
-        // Generate new food that doesn't overlap with the new snake
-        const newFood = generateFood(newSnake);
-        setFood(newFood);
-        foodRef.current = newFood;
-        
-        return newSnake;
-      } else {
-        // Normal movement: add new head, remove tail (snake length stays same)
-        return [head, ...prevSnake.slice(0, -1)];
+    // Check collision
+    if (checkCollision(head, prevSnake)) {
+      setGameState('gameOver');
+      if (gameLoopRef.current) {
+        clearInterval(gameLoopRef.current);
+        gameLoopRef.current = null;
       }
-    });
+      
+      if (deadSoundRef.current) {
+        deadSoundRef.current.currentTime = 0;
+        deadSoundRef.current.play().catch(console.error);
+      }
+      
+      return;
+    }
+
+    const currentFood = foodRef.current;
+    const ateFood = head.x === currentFood.x && head.y === currentFood.y;
+    let newSnake: Position[];
+
+    if (ateFood) {
+      newSnake = [head, ...prevSnake];
+      const newFood = generateFood(newSnake);
+      setFood(newFood);
+      foodRef.current = newFood;
+      setScore(prevScore => prevScore + 1);
+      if (eatSoundRef.current) {
+        eatSoundRef.current.currentTime = 0;
+        eatSoundRef.current.play().catch(console.error);
+      }
+    } else {
+      newSnake = [head, ...prevSnake.slice(0, -1)];
+    }
+
+    snakeRef.current = newSnake;
+    setSnake(newSnake);
   }, [checkCollision, generateFood]);
 
   // Start game
   const startGame = useCallback(() => {
     const initialSnake = initializeSnake();
+    snakeRef.current = initialSnake;
     setSnake(initialSnake);
     const initialFood = generateFood(initialSnake);
     setFood(initialFood);
     foodRef.current = initialFood;
     setScore(0);
+    setSpeed(BASE_GAME_SPEED);
     setDirection('right');
     nextDirectionRef.current = 'right';
-    setNextDirection('right');
     setGameState('playing');
     setIsNewBestScore(false);
-    
-    // Start game loop
-    if (gameLoopRef.current) {
-      clearInterval(gameLoopRef.current);
-    }
-    gameLoopRef.current = setInterval(updateGame, GAME_SPEED);
   }, [initializeSnake, generateFood, updateGame]);
 
   // Restart game
@@ -237,15 +259,57 @@ export default function Play() {
     startGame();
   }, [startGame]);
 
+  // Game loop based on current speed and game state
+  useEffect(() => {
+    if (gameState !== 'playing') {
+      if (gameLoopRef.current) {
+        clearInterval(gameLoopRef.current);
+        gameLoopRef.current = null;
+      }
+      return;
+    }
+
+    const loop = setInterval(updateGame, speed);
+    gameLoopRef.current = loop;
+    return () => {
+      clearInterval(loop);
+      gameLoopRef.current = null;
+    };
+  }, [gameState, speed, updateGame]);
+
+  const requestDirectionChange = useCallback((newDirection: Direction) => {
+    if (gameState !== 'playing') return;
+    const currentDirection = direction;
+    const isOpposite =
+      (currentDirection === 'up' && newDirection === 'down') ||
+      (currentDirection === 'down' && newDirection === 'up') ||
+      (currentDirection === 'left' && newDirection === 'right') ||
+      (currentDirection === 'right' && newDirection === 'left');
+    
+    if (!isOpposite && newDirection !== currentDirection) {
+      nextDirectionRef.current = newDirection;
+    }
+  }, [direction, gameState]);
+
   // Handle keyboard input - WASD only for game controls
   useEffect(() => {
-    if (gameState !== 'playing') return;
+    if (gameState !== 'playing' && gameState !== 'paused') return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       // Ignore if user is typing in an input field
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
         return;
       }
+
+      if (e.code === 'Space' || e.key === ' ') {
+        e.preventDefault();
+        e.stopPropagation();
+        setPressedKey(null);
+        setGameState(prevState => prevState === 'playing' ? 'paused' : 'playing');
+        return;
+      }
+
+      if (gameState !== 'playing') return;
 
       const key = e.key.toLowerCase();
       let newDirection: Direction | null = null;
@@ -273,8 +337,7 @@ export default function Play() {
       if (newDirection && newDirection !== direction) {
         e.preventDefault();
         e.stopPropagation();
-        nextDirectionRef.current = newDirection;
-        setNextDirection(newDirection);
+        requestDirectionChange(newDirection);
       }
     };
 
@@ -291,7 +354,7 @@ export default function Play() {
       window.removeEventListener('keydown', handleKeyDown, true);
       window.removeEventListener('keyup', handleKeyUp, true);
     };
-  }, [gameState, direction]);
+  }, [gameState, direction, requestDirectionChange]);
 
   // Handle touch/swipe controls for mobile
   useEffect(() => {
@@ -300,6 +363,9 @@ export default function Play() {
     let touchStartX = 0;
     let touchStartY = 0;
     const minSwipeDistance = 30; // Minimum distance for a swipe
+
+    const boardEl = boardRef.current;
+    if (!boardEl) return;
 
     const handleTouchStart = (e: TouchEvent) => {
       const touch = e.touches[0];
@@ -342,8 +408,7 @@ export default function Play() {
       }
 
       if (newDirection && newDirection !== direction) {
-        nextDirectionRef.current = newDirection;
-        setNextDirection(newDirection);
+        requestDirectionChange(newDirection);
       }
 
       // Reset touch coordinates
@@ -352,14 +417,14 @@ export default function Play() {
     };
 
     // Add touch event listeners to the game area
-    document.addEventListener('touchstart', handleTouchStart, { passive: true });
-    document.addEventListener('touchend', handleTouchEnd, { passive: true });
+    boardEl.addEventListener('touchstart', handleTouchStart, { passive: true });
+    boardEl.addEventListener('touchend', handleTouchEnd, { passive: true });
 
     return () => {
-      document.removeEventListener('touchstart', handleTouchStart);
-      document.removeEventListener('touchend', handleTouchEnd);
+      boardEl.removeEventListener('touchstart', handleTouchStart);
+      boardEl.removeEventListener('touchend', handleTouchEnd);
     };
-  }, [gameState, direction]);
+  }, [gameState, direction, requestDirectionChange]);
 
   // Cleanup game loop on unmount
   useEffect(() => {
@@ -372,11 +437,13 @@ export default function Play() {
 
   const handleStartClick = () => {
     playSound();
+    setIsPressed(false);
     startGame();
   };
 
   const handleRestartClick = () => {
     playSound();
+    setIsPressed(false);
     restartGame();
   };
 
@@ -449,7 +516,9 @@ export default function Play() {
   }
 
   // Playing state
-  if (gameState === 'playing') {
+  if (gameState === 'playing' || gameState === 'paused') {
+    const isPaused = gameState === 'paused';
+    
     return (
       <div className="basis-0 box-border content-stretch flex flex-col gap-[8px] grow items-center justify-center min-h-px min-w-px overflow-x-clip overflow-y-auto p-[8px] relative shrink-0 w-full">
         <div className="content-stretch flex flex-col gap-[8px] items-center justify-center max-w-[400px] relative shrink-0 w-full">
@@ -467,25 +536,81 @@ export default function Play() {
             </div>
           </div>
           <div 
-            className="bg-[rgba(255,255,255,0.02)] border-2 border-[rgba(255,255,255,0.02)] border-solid h-[400px] w-[400px] max-w-[90vw] max-h-[90vw] relative shrink-0 mx-auto aspect-square overflow-hidden"
+            ref={boardRef}
+            className="bg-[rgba(255,255,255,0.02)] border-2 border-[rgba(255,255,255,0.04)] border-solid h-[400px] w-[400px] max-w-[90vw] max-h-[90vw] relative shrink-0 mx-auto aspect-square overflow-hidden"
             data-game-board
           >
+            <div
+              className="absolute inset-0 pointer-events-none"
+              style={{
+                backgroundImage: `
+                  linear-gradient(to right, rgba(255,255,255,0.025) 1px, transparent 1px),
+                  linear-gradient(to bottom, rgba(255,255,255,0.025) 1px, transparent 1px)
+                `,
+                backgroundSize: `calc(100% / ${GRID_SIZE}) calc(100% / ${GRID_SIZE})`,
+                backgroundPosition: '0 0',
+              }}
+            />
             {/* Snake segments */}
-            {snake.map((segment, index) => (
-              <div
-                key={`snake-${index}`}
-                className="absolute bg-[rgba(255,255,255,0.16)]"
-                style={{
-                  left: `${segment.x * actualCellSize}px`,
-                  top: `${segment.y * actualCellSize}px`,
-                  width: `${actualCellSize}px`,
-                  height: `${actualCellSize}px`,
-                }}
-              />
-            ))}
+            {snake.map((segment, index) => {
+              const isHead = index === 0;
+              if (isHead) {
+                const rotation =
+                  direction === 'up' ? '-90deg' :
+                  direction === 'down' ? '90deg' :
+                  direction === 'left' ? '180deg' : '0deg';
+
+                return (
+                  <div
+                    key="snake-head"
+                    className="absolute bg-[rgba(255,255,255,0.2)]"
+                    style={{
+                      left: `${segment.x * actualCellSize}px`,
+                      top: `${segment.y * actualCellSize}px`,
+                      width: `${actualCellSize}px`,
+                      height: `${actualCellSize}px`,
+                      transform: `rotate(${rotation})`,
+                      transformOrigin: 'center',
+                    }}
+                  >
+                    <div
+                      className="absolute bg-white"
+                      style={{
+                        width: '20%',
+                        height: '20%',
+                        right: '18%',
+                        top: '20%',
+                      }}
+                    />
+                    <div
+                      className="absolute bg-white"
+                      style={{
+                        width: '20%',
+                        height: '20%',
+                        right: '18%',
+                        bottom: '20%',
+                      }}
+                    />
+                  </div>
+                );
+              }
+
+              return (
+                <div
+                  key={`snake-${index}`}
+                  className="absolute bg-[rgba(255,255,255,0.16)]"
+                  style={{
+                    left: `${segment.x * actualCellSize}px`,
+                    top: `${segment.y * actualCellSize}px`,
+                    width: `${actualCellSize}px`,
+                    height: `${actualCellSize}px`,
+                  }}
+                />
+              );
+            })}
             {/* Food */}
             <div
-              className="absolute bg-white"
+              className="absolute bg-white animate-pulse"
               style={{
                 left: `${food.x * actualCellSize}px`,
                 top: `${food.y * actualCellSize}px`,
@@ -493,6 +618,13 @@ export default function Play() {
                 height: `${actualCellSize}px`,
               }}
             />
+            {isPaused && (
+              <div className="absolute inset-0 bg-[rgba(0,0,0,0.32)] backdrop-blur-[2px] flex items-center justify-center">
+                <p className="font-mono text-white text-[14px] tracking-[0.24px] uppercase">
+                  Paused
+                </p>
+              </div>
+            )}
           </div>
           <div className="content-stretch flex font-mono font-semibold items-start justify-between leading-[16px] relative shrink-0 text-[12px] text-nowrap tracking-[0.24px] uppercase w-full whitespace-pre">
             <p className={`relative shrink-0 transition-all duration-150 ease-out ${pressedKey === 'w' ? 'text-white scale-110' : 'text-[rgba(255,255,255,0.4)] scale-100'}`}>
@@ -508,6 +640,39 @@ export default function Play() {
               [D]
             </p>
           </div>
+          {isMobileControls && (
+            <div className="content-stretch grid grid-cols-3 grid-rows-3 gap-[6px] items-center justify-center max-w-[200px] w-full">
+              <div />
+              <button
+                type="button"
+                aria-label="Up"
+                className="bg-[rgba(255,255,255,0.08)] border border-[rgba(255,255,255,0.08)] rounded-none appearance-none h-[36px] w-full active:scale-95 transition"
+                onClick={() => requestDirectionChange('up')}
+              />
+              <div />
+              <button
+                type="button"
+                aria-label="Left"
+                className="bg-[rgba(255,255,255,0.08)] border border-[rgba(255,255,255,0.08)] rounded-none appearance-none h-[36px] w-full active:scale-95 transition"
+                onClick={() => requestDirectionChange('left')}
+              />
+              <div />
+              <button
+                type="button"
+                aria-label="Right"
+                className="bg-[rgba(255,255,255,0.08)] border border-[rgba(255,255,255,0.08)] rounded-none appearance-none h-[36px] w-full active:scale-95 transition"
+                onClick={() => requestDirectionChange('right')}
+              />
+              <div />
+              <button
+                type="button"
+                aria-label="Down"
+                className="bg-[rgba(255,255,255,0.08)] border border-[rgba(255,255,255,0.08)] rounded-none appearance-none h-[36px] w-full active:scale-95 transition"
+                onClick={() => requestDirectionChange('down')}
+              />
+              <div />
+            </div>
+          )}
         </div>
       </div>
     );
