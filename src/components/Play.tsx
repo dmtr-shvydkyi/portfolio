@@ -13,10 +13,13 @@ const BASE_GAME_SPEED = 150;
 const MIN_GAME_SPEED = 70;
 const SPEED_STEP_MS = 10;
 const FOODS_PER_SPEED_STEP = 4;
+const BOARD_BORDER_PX = 2;
+const STACK_GAP_PX = 8;
 
 export default function Play() {
   const [gameState, setGameState] = useState<GameState>('idle');
   const [actualCellSize, setActualCellSize] = useState(BASE_CELL_SIZE);
+  const [boardSize, setBoardSize] = useState(GRID_SIZE * BASE_CELL_SIZE);
   const [speed, setSpeed] = useState(BASE_GAME_SPEED);
   const [score, setScore] = useState(0);
   const [bestScore, setBestScore] = useState(0);
@@ -34,6 +37,10 @@ export default function Play() {
   const snakeRef = useRef<Position[]>([]);
   const foodRef = useRef<Position>({ x: 0, y: 0 });
   const boardRef = useRef<HTMLDivElement | null>(null);
+  const playAreaRef = useRef<HTMLDivElement | null>(null);
+  const scoreRowRef = useRef<HTMLDivElement | null>(null);
+  const keyRowRef = useRef<HTMLDivElement | null>(null);
+  const dpadRef = useRef<HTMLDivElement | null>(null);
   const playSound = useKeyboardSound();
   
   // Sound effects
@@ -115,28 +122,50 @@ export default function Play() {
     snakeRef.current = snake;
   }, [snake]);
 
-  // Calculate actual cell size based on rendered board size
+  // Calculate board size to fit the view and align to the grid
   useEffect(() => {
-    const gameBoard = boardRef.current;
-    if (!gameBoard) return;
+    if (gameState !== 'playing' && gameState !== 'paused') return;
+    const playArea = playAreaRef.current;
+    if (!playArea) return;
 
-    const calculateCellSize = () => {
-      const actualWidth = gameBoard.clientWidth;
-      const newCellSize = actualWidth / GRID_SIZE;
-      setActualCellSize(newCellSize);
+    const updateBoardSize = () => {
+      const width = playArea.clientWidth;
+      const height = playArea.clientHeight;
+      const scoreHeight = scoreRowRef.current?.offsetHeight ?? 0;
+      const keyHeight = keyRowRef.current?.offsetHeight ?? 0;
+      const dpadHeight = isMobileControls ? dpadRef.current?.offsetHeight ?? 0 : 0;
+      const itemCount = isMobileControls ? 4 : 3;
+      const gapTotal = STACK_GAP_PX * (itemCount - 1);
+      const availableHeight = height - scoreHeight - keyHeight - dpadHeight - gapTotal;
+      const rawSize = Math.min(width, availableHeight);
+
+      if (!Number.isFinite(rawSize) || rawSize <= 0) return;
+
+      const adjustedSize = Math.max(rawSize - BOARD_BORDER_PX * 2, GRID_SIZE);
+      const contentSize = Math.floor(adjustedSize / GRID_SIZE) * GRID_SIZE;
+      const nextSize = Math.max(contentSize, GRID_SIZE);
+
+      setBoardSize(prev => (prev === nextSize ? prev : nextSize));
     };
 
+    updateBoardSize();
+
     if (typeof ResizeObserver !== 'undefined') {
-      const resizeObserver = new ResizeObserver(calculateCellSize);
-      resizeObserver.observe(gameBoard);
-      calculateCellSize();
+      const resizeObserver = new ResizeObserver(updateBoardSize);
+      resizeObserver.observe(playArea);
+      if (scoreRowRef.current) resizeObserver.observe(scoreRowRef.current);
+      if (keyRowRef.current) resizeObserver.observe(keyRowRef.current);
+      if (dpadRef.current) resizeObserver.observe(dpadRef.current);
       return () => resizeObserver.disconnect();
     }
 
-    calculateCellSize();
-    window.addEventListener('resize', calculateCellSize);
-    return () => window.removeEventListener('resize', calculateCellSize);
-  }, [gameState]); // Recalculate when game state changes
+    window.addEventListener('resize', updateBoardSize);
+    return () => window.removeEventListener('resize', updateBoardSize);
+  }, [gameState, isMobileControls]);
+
+  useEffect(() => {
+    setActualCellSize(boardSize / GRID_SIZE);
+  }, [boardSize]);
 
 
 
@@ -520,9 +549,15 @@ export default function Play() {
     const isPaused = gameState === 'paused';
     
     return (
-      <div className="basis-0 box-border content-stretch flex flex-col gap-[8px] grow items-center justify-center min-h-px min-w-px overflow-x-clip overflow-y-auto p-[8px] relative shrink-0 w-full">
-        <div className="content-stretch flex flex-col gap-[8px] items-center justify-center max-w-[400px] relative shrink-0 w-full">
-          <div className="content-stretch flex items-start justify-between relative shrink-0 w-full">
+      <div className="basis-0 box-border content-stretch flex flex-col gap-[8px] grow items-center justify-center min-h-0 min-w-px overflow-hidden p-[8px] relative shrink-0 w-full h-full">
+        <div
+          ref={playAreaRef}
+          className="content-stretch flex flex-col gap-[8px] items-center justify-start max-w-[400px] relative shrink-0 w-full h-full min-h-0"
+        >
+          <div
+            ref={scoreRowRef}
+            className="content-stretch flex items-start justify-between relative shrink-0 w-full"
+          >
             <p className="font-mono font-semibold leading-[16px] relative shrink-0 text-[12px] text-white text-nowrap tracking-[0.24px] uppercase whitespace-pre">
               {score}
             </p>
@@ -537,17 +572,21 @@ export default function Play() {
           </div>
           <div 
             ref={boardRef}
-            className="bg-[rgba(255,255,255,0.02)] border-2 border-[rgba(255,255,255,0.04)] border-solid h-[400px] w-[400px] max-w-[90vw] max-h-[90vw] relative shrink-0 mx-auto aspect-square overflow-hidden"
+            className="bg-[rgba(255,255,255,0.02)] border-2 border-[rgba(255,255,255,0.04)] border-solid box-content relative shrink-0 mx-auto overflow-hidden"
             data-game-board
+            style={{
+              width: `${boardSize}px`,
+              height: `${boardSize}px`,
+            }}
           >
             <div
               className="absolute inset-0 pointer-events-none"
               style={{
                 backgroundImage: `
-                  linear-gradient(to right, rgba(255,255,255,0.025) 1px, transparent 1px),
-                  linear-gradient(to bottom, rgba(255,255,255,0.025) 1px, transparent 1px)
+                  linear-gradient(to right, rgba(255,255,255,0.02) 1px, transparent 1px),
+                  linear-gradient(to bottom, rgba(255,255,255,0.02) 1px, transparent 1px)
                 `,
-                backgroundSize: `calc(100% / ${GRID_SIZE}) calc(100% / ${GRID_SIZE})`,
+                backgroundSize: `${actualCellSize}px ${actualCellSize}px`,
                 backgroundPosition: '0 0',
               }}
             />
@@ -626,7 +665,10 @@ export default function Play() {
               </div>
             )}
           </div>
-          <div className="content-stretch flex font-mono font-semibold items-start justify-between leading-[16px] relative shrink-0 text-[12px] text-nowrap tracking-[0.24px] uppercase w-full whitespace-pre">
+          <div
+            ref={keyRowRef}
+            className="content-stretch flex font-mono font-semibold items-start justify-between leading-[16px] relative shrink-0 text-[12px] text-nowrap tracking-[0.24px] uppercase w-full whitespace-pre"
+          >
             <p className={`relative shrink-0 transition-all duration-150 ease-out ${pressedKey === 'w' ? 'text-white scale-110' : 'text-[rgba(255,255,255,0.4)] scale-100'}`}>
               [W]
             </p>
@@ -641,7 +683,10 @@ export default function Play() {
             </p>
           </div>
           {isMobileControls && (
-            <div className="content-stretch grid grid-cols-3 grid-rows-3 gap-[6px] items-center justify-center max-w-[200px] w-full">
+            <div
+              ref={dpadRef}
+              className="content-stretch grid grid-cols-3 grid-rows-3 gap-[6px] items-center justify-center max-w-[200px] w-full"
+            >
               <div />
               <button
                 type="button"
