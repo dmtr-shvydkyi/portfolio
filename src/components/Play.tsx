@@ -552,7 +552,7 @@ export default function Play() {
       <div className="basis-0 box-border content-stretch flex flex-col gap-[8px] grow items-center justify-center min-h-0 min-w-px overflow-hidden p-[8px] relative shrink-0 w-full h-full">
         <div
           ref={playAreaRef}
-          className="content-stretch flex flex-col gap-[8px] items-center justify-start max-w-[400px] relative shrink-0 w-full h-full min-h-0"
+          className="content-stretch flex flex-col gap-[8px] items-center justify-start md:justify-center max-w-[400px] relative shrink-0 w-full h-full min-h-0"
         >
           <div
             ref={scoreRowRef}
