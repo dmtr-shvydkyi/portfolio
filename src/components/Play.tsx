@@ -742,7 +742,7 @@ export default function Play() {
           </div>
         </div>
         <div 
-          className={getButtonStyles()}
+          className={`${getButtonStyles()} mt-[8px]`}
           onMouseDown={handleMouseDown}
           onMouseUp={handleRestartClick}
           onMouseEnter={() => setIsHovered(true)}
