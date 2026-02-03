@@ -1,11 +1,22 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, type CSSProperties } from 'react';
 import { useKeyboardSound } from '@/hooks/useKeyboardSound';
+import Leaderboard, { type LeaderboardEntry } from '@/components/Leaderboard';
 
-type GameState = 'idle' | 'playing' | 'paused' | 'gameOver';
+type GameState = 'idle' | 'playing' | 'paused' | 'dying' | 'gameOver';
 type Direction = 'up' | 'down' | 'left' | 'right';
 type Position = { x: number; y: number };
+type DeathChunk = {
+  id: string;
+  x: number;
+  y: number;
+  dx: number;
+  dy: number;
+  rot: number;
+  delay: number;
+  isHead: boolean;
+};
 
 const GRID_SIZE = 25;
 const BASE_CELL_SIZE = 16;
@@ -15,6 +26,39 @@ const SPEED_STEP_MS = 10;
 const FOODS_PER_SPEED_STEP = 4;
 const BOARD_BORDER_PX = 2;
 const STACK_GAP_PX = 8;
+const CRUMBLE_DURATION_MS = 320;
+const CRUMBLE_STAGGER_MS = 10;
+const FADE_DURATION_MS = 660;
+const LEADERBOARD_LIMIT = 5;
+const LEADERBOARD_COOKIE = 'snake_nick';
+const LEADERBOARD_API = '/api/snake/leaderboard';
+const NICKNAME_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+
+const readCookie = (name: string) => {
+  if (typeof document === 'undefined') return null;
+  const match = document.cookie
+    .split('; ')
+    .find(part => part.startsWith(`${name}=`));
+  return match ? decodeURIComponent(match.split('=').slice(1).join('=')) : null;
+};
+
+const writeCookie = (name: string, value: string, days: number) => {
+  if (typeof document === 'undefined') return;
+  const maxAge = days * 24 * 60 * 60;
+  let cookie = `${name}=${encodeURIComponent(value)}; Max-Age=${maxAge}; Path=/; SameSite=Lax`;
+  if (window.location.protocol === 'https:') {
+    cookie += '; Secure';
+  }
+  document.cookie = cookie;
+};
+
+const generateNickname = () => {
+  const randomBlock = () => Math.floor(Math.random() * 1000);
+  const suffix = Array.from({ length: 3 }, () =>
+    NICKNAME_CHARS[Math.floor(Math.random() * NICKNAME_CHARS.length)]
+  ).join('');
+  return `${randomBlock()}.${randomBlock()}.${randomBlock()}.${suffix}`;
+};
 
 export default function Play() {
   const [gameState, setGameState] = useState<GameState>('idle');
@@ -24,13 +68,18 @@ export default function Play() {
   const [score, setScore] = useState(0);
   const [bestScore, setBestScore] = useState(0);
   const [snake, setSnake] = useState<Position[]>([]);
+  const [deathChunks, setDeathChunks] = useState<DeathChunk[]>([]);
   const [food, setFood] = useState<Position>({ x: 0, y: 0 });
   const [direction, setDirection] = useState<Direction>('right');
   const [isHovered, setIsHovered] = useState(false);
   const [isPressed, setIsPressed] = useState(false);
   const [isNewBestScore, setIsNewBestScore] = useState(false);
+  const [isGameFadingOut, setIsGameFadingOut] = useState(false);
+  const [isGameOverVisible, setIsGameOverVisible] = useState(false);
   const [pressedKey, setPressedKey] = useState<string | null>(null);
   const [isMobileControls, setIsMobileControls] = useState(false);
+  const [leaderboardEntries, setLeaderboardEntries] = useState<LeaderboardEntry[]>([]);
+  const [leaderboardNick, setLeaderboardNick] = useState<string | null>(null);
   
   const gameLoopRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const nextDirectionRef = useRef<Direction>('right');
@@ -42,10 +91,14 @@ export default function Play() {
   const keyRowRef = useRef<HTMLDivElement | null>(null);
   const dpadRef = useRef<HTMLDivElement | null>(null);
   const playSound = useKeyboardSound();
+  const runIdRef = useRef(0);
+  const submittedRunIdRef = useRef<number | null>(null);
   
   // Sound effects
   const eatSoundRef = useRef<HTMLAudioElement | null>(null);
   const deadSoundRef = useRef<HTMLAudioElement | null>(null);
+  const crumbleTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const gameOverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Initialize sound effects
   useEffect(() => {
@@ -95,6 +148,17 @@ export default function Play() {
     }
   }, [gameState, score]);
 
+  useEffect(() => {
+    if (gameState === 'gameOver') {
+      const frame = requestAnimationFrame(() => {
+        setIsGameOverVisible(true);
+      });
+      return () => cancelAnimationFrame(frame);
+    }
+
+    setIsGameOverVisible(false);
+  }, [gameState]);
+
   // Dynamically adjust speed as the score grows
   useEffect(() => {
     const steps = Math.floor(score / FOODS_PER_SPEED_STEP);
@@ -116,6 +180,43 @@ export default function Play() {
   useEffect(() => {
     foodRef.current = food;
   }, [food]);
+
+  const fetchLeaderboard = useCallback(async () => {
+    try {
+      const response = await fetch(`${LEADERBOARD_API}?limit=${LEADERBOARD_LIMIT}`, {
+        cache: 'no-store',
+      });
+      if (!response.ok) return;
+      const data = await response.json();
+      if (Array.isArray(data?.entries)) {
+        setLeaderboardEntries(data.entries);
+      }
+    } catch {
+      // Ignore fetch errors
+    }
+  }, []);
+
+  const postLeaderboardScore = useCallback(async (value: number, nick: string) => {
+    try {
+      await fetch(LEADERBOARD_API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ score: value, nick }),
+      });
+    } catch {
+      // Ignore POST errors
+    }
+  }, []);
+
+  useEffect(() => {
+    const existingNick = readCookie(LEADERBOARD_COOKIE);
+    const nextNick = existingNick ?? generateNickname();
+    if (!existingNick) {
+      writeCookie(LEADERBOARD_COOKIE, nextNick, 365);
+    }
+    setLeaderboardNick(nextNick);
+    fetchLeaderboard();
+  }, [fetchLeaderboard]);
 
   // Keep snake ref in sync with snake state
   useEffect(() => {
@@ -166,6 +267,49 @@ export default function Play() {
   useEffect(() => {
     setActualCellSize(boardSize / GRID_SIZE);
   }, [boardSize]);
+
+  useEffect(() => {
+    if (gameState === 'idle') {
+      fetchLeaderboard();
+    }
+  }, [gameState, fetchLeaderboard]);
+
+  useEffect(() => {
+    if (gameState !== 'gameOver') return;
+
+    const nick = leaderboardNick ?? readCookie(LEADERBOARD_COOKIE) ?? generateNickname();
+    if (!leaderboardNick) {
+      setLeaderboardNick(nick);
+      writeCookie(LEADERBOARD_COOKIE, nick, 365);
+    }
+
+    if (score <= 0) {
+      fetchLeaderboard();
+      return;
+    }
+
+    if (submittedRunIdRef.current === runIdRef.current) {
+      fetchLeaderboard();
+      return;
+    }
+
+    submittedRunIdRef.current = runIdRef.current;
+    (async () => {
+      await postLeaderboardScore(score, nick);
+      await fetchLeaderboard();
+    })();
+  }, [gameState, score, leaderboardNick, fetchLeaderboard, postLeaderboardScore]);
+
+  const clearDeathTimers = useCallback(() => {
+    if (crumbleTimeoutRef.current) {
+      clearTimeout(crumbleTimeoutRef.current);
+      crumbleTimeoutRef.current = null;
+    }
+    if (gameOverTimeoutRef.current) {
+      clearTimeout(gameOverTimeoutRef.current);
+      gameOverTimeoutRef.current = null;
+    }
+  }, []);
 
 
 
@@ -231,16 +375,56 @@ export default function Play() {
 
     // Check collision
     if (checkCollision(head, prevSnake)) {
-      setGameState('gameOver');
       if (gameLoopRef.current) {
         clearInterval(gameLoopRef.current);
         gameLoopRef.current = null;
       }
-      
+
       if (deadSoundRef.current) {
         deadSoundRef.current.currentTime = 0;
         deadSoundRef.current.play().catch(console.error);
       }
+
+      clearDeathTimers();
+      const now = Date.now();
+      const maxStaggerIndex = Math.min(prevSnake.length - 1, 10);
+      const maxDelay = maxStaggerIndex > 0 ? maxStaggerIndex * CRUMBLE_STAGGER_MS : 0;
+      const nextChunks = prevSnake.map((segment, index) => {
+        const angle = Math.random() * Math.PI * 2;
+        const distance = 0.6 + Math.random() * 1.2;
+        const margin = 0.2;
+        const minDx = -segment.x + margin;
+        const maxDx = GRID_SIZE - 1 - segment.x - margin;
+        const minDy = -segment.y + margin;
+        const maxDy = GRID_SIZE - 1 - segment.y - margin;
+        const rawDx = Math.cos(angle) * distance;
+        const rawDy = Math.sin(angle) * distance;
+        const dx = Math.min(Math.max(rawDx, minDx), maxDx);
+        const dy = Math.min(Math.max(rawDy, minDy), maxDy);
+        const delay = Math.min(index, 10) * CRUMBLE_STAGGER_MS;
+        return {
+          id: `${now}-${index}`,
+          x: segment.x,
+          y: segment.y,
+          dx,
+          dy,
+          rot: Math.random() * 50 - 25,
+          delay,
+          isHead: index === 0,
+        };
+      });
+
+      setDeathChunks(nextChunks);
+      setIsGameOverVisible(false);
+      setIsGameFadingOut(false);
+      setGameState('dying');
+      const crumbleTotal = CRUMBLE_DURATION_MS + maxDelay;
+      crumbleTimeoutRef.current = setTimeout(() => {
+        setIsGameFadingOut(true);
+      }, crumbleTotal);
+      gameOverTimeoutRef.current = setTimeout(() => {
+        setGameState('gameOver');
+      }, crumbleTotal + FADE_DURATION_MS);
       
       return;
     }
@@ -265,13 +449,18 @@ export default function Play() {
 
     snakeRef.current = newSnake;
     setSnake(newSnake);
-  }, [checkCollision, generateFood]);
+  }, [checkCollision, clearDeathTimers, generateFood]);
 
   // Start game
   const startGame = useCallback(() => {
+    clearDeathTimers();
+    runIdRef.current += 1;
     const initialSnake = initializeSnake();
     snakeRef.current = initialSnake;
     setSnake(initialSnake);
+    setDeathChunks([]);
+    setIsGameOverVisible(false);
+    setIsGameFadingOut(false);
     const initialFood = generateFood(initialSnake);
     setFood(initialFood);
     foodRef.current = initialFood;
@@ -281,7 +470,7 @@ export default function Play() {
     nextDirectionRef.current = 'right';
     setGameState('playing');
     setIsNewBestScore(false);
-  }, [initializeSnake, generateFood, updateGame]);
+  }, [clearDeathTimers, generateFood, initializeSnake]);
 
   // Restart game
   const restartGame = useCallback(() => {
@@ -461,6 +650,12 @@ export default function Play() {
       if (gameLoopRef.current) {
         clearInterval(gameLoopRef.current);
       }
+      if (crumbleTimeoutRef.current) {
+        clearTimeout(crumbleTimeoutRef.current);
+      }
+      if (gameOverTimeoutRef.current) {
+        clearTimeout(gameOverTimeoutRef.current);
+      }
     };
   }, []);
 
@@ -478,10 +673,6 @@ export default function Play() {
 
   const handleMouseDown = () => {
     setIsPressed(true);
-  };
-
-  const handleMouseUp = () => {
-    setIsPressed(false);
   };
 
   const handleMouseLeave = () => {
@@ -506,58 +697,143 @@ export default function Play() {
     return `${baseStyles} text-[rgba(255,255,255,0.88)]`;
   };
 
-  // Idle state (empty state)
-  if (gameState === 'idle') {
-    return (
-      <div className="basis-0 box-border content-stretch flex flex-col gap-[8px] grow items-center justify-center min-h-px min-w-px overflow-x-clip overflow-y-auto p-[8px] relative shrink-0 w-full">
-        <div className="content-stretch flex flex-col gap-[16px] items-center justify-center max-w-[400px] relative shrink-0 w-full">
-          <div className="content-stretch flex flex-col font-mono font-semibold gap-[8px] items-center relative shrink-0 uppercase w-full">
+  const leaderboardDivider = leaderboardEntries.length ? (
+    <div className="w-[80px] h-px bg-[rgba(255,255,255,0.08)]" />
+  ) : null;
+
+  const leaderboardSection = leaderboardEntries.length ? (
+    <div className="content-stretch flex flex-col gap-[16px] items-center relative shrink-0 w-full">
+      <p className="font-mono font-bold leading-[26px] relative shrink-0 text-[20px] md:text-[22px] text-white text-center uppercase w-full">
+        LEADERBOARD
+      </p>
+      <Leaderboard entries={leaderboardEntries} currentNick={leaderboardNick} />
+    </div>
+  ) : null;
+
+  const finalBestScore = isNewBestScore ? score : bestScore;
+  const gameOverContent = (
+    <div className="content-stretch flex flex-col gap-[24px] md:gap-[32px] items-center justify-center max-w-[400px] my-auto relative shrink-0 w-full">
+      <div className="content-stretch flex flex-col gap-0 items-center justify-center relative shrink-0 w-full">
+        <div className="content-stretch flex flex-col font-mono font-semibold gap-[8px] items-center relative shrink-0 uppercase w-full">
+          {!isNewBestScore && (
             <div className="content-stretch flex gap-[8px] items-start justify-center leading-[16px] relative shrink-0 text-[12px] text-[rgba(255,255,255,0.4)] text-nowrap tracking-[0.24px] whitespace-pre">
               <p className="relative shrink-0">
                 Best Score:
               </p>
               <p className="relative shrink-0">
-                {bestScore}
+                {finalBestScore}
               </p>
             </div>
-            <p className="leading-[48px] min-w-full relative shrink-0 text-[40px] text-white text-center w-[min-content]">
-              snake GAMe
+          )}
+          <p className="leading-[48px] min-w-full relative shrink-0 text-[40px] text-white text-center w-[min-content]">
+            {isNewBestScore ? 'BEST score' : 'GAMe over'}
+          </p>
+        </div>
+        <div className="content-stretch flex flex-col gap-[16px] items-center relative shrink-0">
+          <div className="font-mono font-semibold leading-[16px] relative shrink-0 text-[12px] text-[rgba(255,255,255,0.32)] text-center tracking-[0.24px] w-[280px]">
+            <p className="mb-[8px]">
+              {score === 0 ? 'Try moving, WASD, please...' :
+              isNewBestScore ? 'Very nice!' :
+              'Not bad. Could be better.'}
+            </p>
+            <p className="text-white">
+              {score}
             </p>
           </div>
-          <div className="font-mono font-semibold leading-[16px] relative shrink-0 text-[12px] text-[rgba(255,255,255,0.32)] text-center tracking-[0.24px] w-full max-w-[280px]">
-            <p className="mb-[8px]">This was supposed to be a detailed case study. Then I got bored.</p>
-            <p>♡</p>
+        </div>
+        <div 
+          className={getButtonStyles()}
+          onMouseDown={handleMouseDown}
+          onMouseUp={handleRestartClick}
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={handleMouseLeave}
+        >
+          <p className={getTextStyles()}>
+            Restart
+          </p>
+        </div>
+      </div>
+      {leaderboardDivider}
+      {leaderboardSection}
+    </div>
+  );
+
+  // Idle state (empty state)
+  if (gameState === 'idle') {
+    return (
+      <div className="basis-0 box-border content-stretch flex flex-col gap-0 grow items-center justify-start min-h-px min-w-px overflow-x-clip overflow-y-auto p-[8px] relative shrink-0 w-full">
+        <div className="content-stretch flex flex-col gap-[24px] md:gap-[32px] items-center justify-center max-w-[400px] my-auto relative shrink-0 w-full">
+          <div className="content-stretch flex flex-col gap-[24px] items-center justify-center relative shrink-0 w-full">
+            <div className="content-stretch flex flex-col font-mono font-semibold gap-[8px] items-center relative shrink-0 uppercase w-full">
+              <div className="content-stretch flex gap-[8px] items-start justify-center leading-[16px] relative shrink-0 text-[12px] text-[rgba(255,255,255,0.4)] text-nowrap tracking-[0.24px] whitespace-pre">
+                <p className="relative shrink-0">
+                  Best Score:
+                </p>
+                <p className="relative shrink-0">
+                  {bestScore}
+                </p>
+              </div>
+              <p className="leading-[48px] min-w-full relative shrink-0 text-[40px] text-white text-center w-[min-content]">
+                snake GAMe
+              </p>
+            </div>
+            <div className="font-mono font-semibold leading-[16px] relative shrink-0 text-[12px] text-[rgba(255,255,255,0.32)] text-center tracking-[0.24px] w-full max-w-[280px]">
+              <p className="mb-[8px]">This was supposed to be a detailed case study. Then I got bored.</p>
+              <p>♡</p>
+            </div>
+            <div 
+              className={getButtonStyles()}
+              onMouseDown={handleMouseDown}
+              onMouseUp={handleStartClick}
+              onMouseEnter={() => setIsHovered(true)}
+              onMouseLeave={handleMouseLeave}
+            >
+              <p className={getTextStyles()}>
+                Start
+              </p>
+            </div>
           </div>
-          <div 
-            className={getButtonStyles()}
-            onMouseDown={handleMouseDown}
-            onMouseUp={handleStartClick}
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={handleMouseLeave}
-          >
-            <p className={getTextStyles()}>
-              Start
-            </p>
-          </div>
+          {leaderboardDivider}
+          {leaderboardSection}
         </div>
       </div>
     );
   }
 
   // Playing state
-  if (gameState === 'playing' || gameState === 'paused') {
+  if (gameState === 'playing' || gameState === 'paused' || gameState === 'dying') {
     const isPaused = gameState === 'paused';
+    const isDying = gameState === 'dying';
+    const shouldFadeOut = isDying && isGameFadingOut;
+    const crossSize = Math.max(3, Math.round(actualCellSize * 0.23));
+    const crossStroke = Math.max(1, Math.round(actualCellSize * 0.06));
+    const crossInsetX = Math.round(actualCellSize * 0.2);
+    const crossInsetY = Math.round(actualCellSize * 0.24);
+    const boardOuter = boardSize + BOARD_BORDER_PX * 2;
     
     return (
-      <div className="basis-0 box-border content-stretch flex flex-col gap-[8px] grow items-center justify-center min-h-0 min-w-px overflow-hidden p-[8px] relative shrink-0 w-full h-full">
+      <div
+        className="basis-0 box-border content-stretch flex flex-col gap-[8px] grow items-center justify-center min-h-0 min-w-px overflow-hidden p-[8px] relative shrink-0 w-full h-full transition-opacity"
+        style={{
+          opacity: shouldFadeOut ? 0 : 1,
+          transitionDuration: `${FADE_DURATION_MS}ms`,
+        }}
+      >
         <div
           ref={playAreaRef}
           className="content-stretch flex flex-col gap-[8px] items-center justify-start md:justify-center max-w-[400px] relative shrink-0 w-full h-full min-h-0"
         >
           <div
-            ref={scoreRowRef}
-            className="content-stretch flex items-start justify-between relative shrink-0 w-full"
+            className="content-stretch flex flex-col gap-[8px] items-center justify-start md:justify-center relative shrink-0 mx-auto"
+            style={{
+              width: `${boardOuter}px`,
+              maxWidth: '100%',
+            }}
           >
+            <div
+              ref={scoreRowRef}
+              className="content-stretch flex items-start justify-between relative shrink-0 w-full"
+            >
             <p className="font-mono font-semibold leading-[16px] relative shrink-0 text-[12px] text-white text-nowrap tracking-[0.24px] uppercase whitespace-pre">
               {score}
             </p>
@@ -591,7 +867,7 @@ export default function Play() {
               }}
             />
             {/* Snake segments */}
-            {snake.map((segment, index) => {
+            {!isDying && snake.map((segment, index) => {
               const isHead = index === 0;
               if (isHead) {
                 const rotation =
@@ -647,16 +923,102 @@ export default function Play() {
                 />
               );
             })}
+            {isDying && deathChunks.map(chunk => (
+              <div
+                key={chunk.id}
+                className={`absolute animate-snake-crumble ${chunk.isHead ? 'bg-[rgba(255,255,255,0.2)]' : 'bg-[rgba(255,255,255,0.16)]'}`}
+                style={{
+                  left: `${chunk.x * actualCellSize}px`,
+                  top: `${chunk.y * actualCellSize}px`,
+                  width: `${actualCellSize}px`,
+                  height: `${actualCellSize}px`,
+                  ...( {
+                    '--dx': `${chunk.dx * actualCellSize}px`,
+                    '--dy': `${chunk.dy * actualCellSize}px`,
+                    '--rot': `${chunk.rot}deg`,
+                    '--delay': `${chunk.delay}ms`,
+                    '--crumble-duration': `${CRUMBLE_DURATION_MS}ms`,
+                  } as CSSProperties ),
+                }}
+              >
+                {chunk.isHead && (
+                  <>
+                    <div
+                      className="absolute"
+                      style={{
+                        width: `${crossSize}px`,
+                        height: `${crossSize}px`,
+                        right: `${crossInsetX}px`,
+                        top: `${crossInsetY}px`,
+                      }}
+                    >
+                      <div
+                        className="absolute bg-white"
+                        style={{
+                          width: '100%',
+                          height: `${crossStroke}px`,
+                          top: '50%',
+                          left: 0,
+                          transform: 'translateY(-50%) rotate(45deg)',
+                        }}
+                      />
+                      <div
+                        className="absolute bg-white"
+                        style={{
+                          width: '100%',
+                          height: `${crossStroke}px`,
+                          top: '50%',
+                          left: 0,
+                          transform: 'translateY(-50%) rotate(-45deg)',
+                        }}
+                      />
+                    </div>
+                    <div
+                      className="absolute"
+                      style={{
+                        width: `${crossSize}px`,
+                        height: `${crossSize}px`,
+                        right: `${crossInsetX}px`,
+                        bottom: `${crossInsetY}px`,
+                      }}
+                    >
+                      <div
+                        className="absolute bg-white"
+                        style={{
+                          width: '100%',
+                          height: `${crossStroke}px`,
+                          top: '50%',
+                          left: 0,
+                          transform: 'translateY(-50%) rotate(45deg)',
+                        }}
+                      />
+                      <div
+                        className="absolute bg-white"
+                        style={{
+                          width: '100%',
+                          height: `${crossStroke}px`,
+                          top: '50%',
+                          left: 0,
+                          transform: 'translateY(-50%) rotate(-45deg)',
+                        }}
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
+            ))}
             {/* Food */}
-            <div
-              className="absolute bg-white animate-pulse"
-              style={{
-                left: `${food.x * actualCellSize}px`,
-                top: `${food.y * actualCellSize}px`,
-                width: `${actualCellSize}px`,
-                height: `${actualCellSize}px`,
-              }}
-            />
+            {!isDying && (
+              <div
+                className="absolute bg-white animate-pulse"
+                style={{
+                  left: `${food.x * actualCellSize}px`,
+                  top: `${food.y * actualCellSize}px`,
+                  width: `${actualCellSize}px`,
+                  height: `${actualCellSize}px`,
+                }}
+              />
+            )}
             {isPaused && (
               <div className="absolute inset-0 bg-[rgba(0,0,0,0.32)] backdrop-blur-[2px] flex items-center justify-center">
                 <p className="font-mono text-white text-[14px] tracking-[0.24px] uppercase">
@@ -718,56 +1080,22 @@ export default function Play() {
               <div />
             </div>
           )}
+          </div>
         </div>
       </div>
     );
   }
 
   // Game over state
-  const finalBestScore = isNewBestScore ? score : bestScore;
-
   return (
-    <div className="basis-0 box-border content-stretch flex flex-col gap-[8px] grow items-center justify-center min-h-px min-w-px overflow-x-clip overflow-y-auto p-[8px] relative shrink-0 w-full">
-      <div className="content-stretch flex flex-col gap-[16px] items-center justify-center max-w-[400px] relative shrink-0 w-full">
-        <div className="content-stretch flex flex-col font-mono font-semibold gap-[8px] items-center relative shrink-0 uppercase w-full">
-          {!isNewBestScore && (
-            <div className="content-stretch flex gap-[8px] items-start justify-center leading-[16px] relative shrink-0 text-[12px] text-[rgba(255,255,255,0.4)] text-nowrap tracking-[0.24px] whitespace-pre">
-              <p className="relative shrink-0">
-                Best Score:
-              </p>
-              <p className="relative shrink-0">
-                {finalBestScore}
-              </p>
-            </div>
-          )}
-          <p className="leading-[48px] min-w-full relative shrink-0 text-[40px] text-white text-center w-[min-content]">
-            {isNewBestScore ? 'BEST score' : 'GAMe over'}
-          </p>
-        </div>
-        <div className="content-stretch flex flex-col gap-[16px] items-center relative shrink-0">
-          <div className="font-mono font-semibold leading-[16px] relative shrink-0 text-[12px] text-[rgba(255,255,255,0.32)] text-center tracking-[0.24px] w-[280px]">
-            <p className="mb-[8px]">
-              {score === 0 ? 'Try moving, WASD, please...' : 
-               isNewBestScore ? 'Very nice!' : 
-               'Not bad. Could be better.'}
-            </p>
-            <p className="text-white">
-              {score}
-            </p>
-          </div>
-        </div>
-        <div 
-          className={getButtonStyles()}
-          onMouseDown={handleMouseDown}
-          onMouseUp={handleRestartClick}
-          onMouseEnter={() => setIsHovered(true)}
-          onMouseLeave={handleMouseLeave}
-        >
-          <p className={getTextStyles()}>
-            Restart
-          </p>
-        </div>
-      </div>
+    <div
+      className="basis-0 box-border content-stretch flex flex-col gap-[8px] grow items-center justify-start min-h-px min-w-px overflow-x-clip overflow-y-auto p-[8px] relative shrink-0 w-full transition-opacity"
+      style={{
+        opacity: isGameOverVisible ? 1 : 0,
+        transitionDuration: `${FADE_DURATION_MS}ms`,
+      }}
+    >
+      {gameOverContent}
     </div>
   );
 }

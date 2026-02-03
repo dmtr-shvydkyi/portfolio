@@ -78,6 +78,22 @@ body,
   padding-left: 1ch;
 }
 
+@keyframes snakeCrumble {
+  from {
+    transform: translate(0, 0) rotate(0deg);
+  }
+
+  to {
+    transform: translate(var(--dx, 0px), var(--dy, 0px)) rotate(var(--rot, 0deg));
+  }
+}
+
+.animate-snake-crumble {
+  animation: snakeCrumble var(--crumble-duration, 320ms) ease-out forwards;
+  animation-delay: var(--delay, 0ms);
+  will-change: transform, opacity;
+}
+
 /* Shake effect animation */
 @keyframes glitch {
 
@@ -125,4 +141,11 @@ body,
 
 .animate-glitch {
   animation: glitch 0.4s ease-in-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-snake-crumble {
+    animation-duration: 1ms;
+    animation-delay: 0ms;
+  }
 }
