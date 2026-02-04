@@ -1,10 +1,14 @@
 import Link from './Link';
+import GlitchScramble from './GlitchScramble';
 
 export default function About() {
   return (
     <div className="basis-0 box-border content-stretch flex flex-col gap-[8px] grow items-center justify-start min-h-px min-w-px overflow-x-clip overflow-y-auto p-[8px] relative shrink-0 w-full">
       <div className="content-stretch flex gap-[8px] items-center justify-center max-w-[400px] my-auto relative shrink-0 w-full">
-        <div className="basis-0 font-mono font-medium grow leading-[0] min-h-px min-w-px relative shrink-0 text-[0px] text-[rgba(255,255,255,0.64)]">
+        <GlitchScramble
+          className="basis-0 cursor-default select-none font-mono font-medium grow leading-[0] min-h-px min-w-px relative shrink-0 text-[0px] text-[rgba(255,255,255,0.64)]"
+          radiusYFactor={0.7}
+        >
             <p className="leading-[20px] mb-[8px] text-[12px] normal-case">
               <span>I&apos;m a product designer from Kyiv, Ukraine, currently working at Skylum on </span>
               <Link theme="dark" href="https://skylum.com/uk/luminar" className="inline font-bold text-white underline" style={{textTransform: 'none'}}>
@@ -33,7 +37,7 @@ export default function About() {
               </Link>
               <span>, or driving my EV. There&apos;s just something about this battery-powered toaster on wheels that I love.</span>
             </p>
-        </div>
+        </GlitchScramble>
       </div>
     </div>
   );

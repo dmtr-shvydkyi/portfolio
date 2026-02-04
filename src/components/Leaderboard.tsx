@@ -37,12 +37,12 @@ export default function Leaderboard({ entries, currentNick }: LeaderboardProps) 
               {place}
             </p>
             {isYou ? (
-              <p className="relative shrink-0 text-[rgba(255,255,255,0.32)] w-[100px]">
+              <p className="relative shrink-0 text-[rgba(255,255,255,0.32)] whitespace-nowrap">
                 <span>{getYouPrefix(entry.nick)}</span>
                 <span className="text-white">YOU</span>
               </p>
             ) : (
-              <p className="relative shrink-0 text-[rgba(255,255,255,0.32)] w-[100px]">
+              <p className="relative shrink-0 text-[rgba(255,255,255,0.32)] whitespace-nowrap">
                 {entry.nick}
               </p>
             )}

@@ -712,8 +712,8 @@ export default function Play() {
 
   const finalBestScore = isNewBestScore ? score : bestScore;
   const gameOverContent = (
-    <div className="content-stretch flex flex-col gap-[24px] md:gap-[32px] items-center justify-center max-w-[400px] my-auto relative shrink-0 w-full">
-      <div className="content-stretch flex flex-col gap-0 items-center justify-center relative shrink-0 w-full">
+    <div className="content-stretch flex flex-col gap-[32px] items-center justify-center max-w-[400px] my-auto relative shrink-0 w-full">
+      <div className="content-stretch flex flex-col items-center justify-center relative shrink-0 w-full">
         <div className="content-stretch flex flex-col font-mono font-semibold gap-[8px] items-center relative shrink-0 uppercase w-full">
           {!isNewBestScore && (
             <div className="content-stretch flex gap-[8px] items-start justify-center leading-[16px] relative shrink-0 text-[12px] text-[rgba(255,255,255,0.4)] text-nowrap tracking-[0.24px] whitespace-pre">
@@ -729,20 +729,18 @@ export default function Play() {
             {isNewBestScore ? 'BEST score' : 'GAMe over'}
           </p>
         </div>
-        <div className="content-stretch flex flex-col gap-[16px] items-center relative shrink-0">
-          <div className="font-mono font-semibold leading-[16px] relative shrink-0 text-[12px] text-[rgba(255,255,255,0.32)] text-center tracking-[0.24px] w-[280px]">
-            <p className="mb-[8px]">
-              {score === 0 ? 'Try moving, WASD, please...' :
-              isNewBestScore ? 'Very nice!' :
-              'Not bad. Could be better.'}
-            </p>
-            <p className="text-white">
-              {score}
-            </p>
-          </div>
+        <div className="mt-[16px] font-mono font-semibold leading-[16px] relative shrink-0 text-[12px] text-[rgba(255,255,255,0.32)] text-center tracking-[0.24px] w-[280px]">
+          <p className="mb-[8px]">
+            {score === 0 ? 'Try moving, WASD, please...' :
+            isNewBestScore ? 'Very nice!' :
+            'Not bad. Could be better.'}
+          </p>
+          <p className="text-white">
+            {score}
+          </p>
         </div>
         <div 
-          className={`${getButtonStyles()} mt-[8px]`}
+          className={`${getButtonStyles()} mt-[24px]`}
           onMouseDown={handleMouseDown}
           onMouseUp={handleRestartClick}
           onMouseEnter={() => setIsHovered(true)}
@@ -762,8 +760,8 @@ export default function Play() {
   if (gameState === 'idle') {
     return (
       <div className="basis-0 box-border content-stretch flex flex-col gap-0 grow items-center justify-start min-h-px min-w-px overflow-x-clip overflow-y-auto p-[8px] relative shrink-0 w-full">
-        <div className="content-stretch flex flex-col gap-[24px] md:gap-[32px] items-center justify-center max-w-[400px] my-auto relative shrink-0 w-full">
-          <div className="content-stretch flex flex-col gap-[24px] items-center justify-center relative shrink-0 w-full">
+        <div className="content-stretch flex flex-col gap-[32px] items-center justify-center max-w-[400px] my-auto relative shrink-0 w-full">
+          <div className="content-stretch flex flex-col items-center justify-center relative shrink-0 w-full">
             <div className="content-stretch flex flex-col font-mono font-semibold gap-[8px] items-center relative shrink-0 uppercase w-full">
               <div className="content-stretch flex gap-[8px] items-start justify-center leading-[16px] relative shrink-0 text-[12px] text-[rgba(255,255,255,0.4)] text-nowrap tracking-[0.24px] whitespace-pre">
                 <p className="relative shrink-0">
@@ -777,12 +775,11 @@ export default function Play() {
                 snake GAMe
               </p>
             </div>
-            <div className="font-mono font-semibold leading-[16px] relative shrink-0 text-[12px] text-[rgba(255,255,255,0.32)] text-center tracking-[0.24px] w-full max-w-[280px]">
+            <div className="mt-[16px] font-mono font-semibold leading-[16px] relative shrink-0 text-[12px] text-[rgba(255,255,255,0.32)] text-center tracking-[0.24px] w-full max-w-[280px]">
               <p className="mb-[8px]">This was supposed to be a detailed case study. Then I got bored.</p>
-              <p>♡</p>
             </div>
             <div 
-              className={getButtonStyles()}
+              className={`${getButtonStyles()} mt-[24px]`}
               onMouseDown={handleMouseDown}
               onMouseUp={handleStartClick}
               onMouseEnter={() => setIsHovered(true)}

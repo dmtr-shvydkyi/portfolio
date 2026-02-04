@@ -3,8 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build --turbopack",
+    "dev": "next dev -p 3000",
+    "clean": "node -e \"require('fs').rmSync('.next',{recursive:true,force:true});\"",
+    "dev:clean": "npm run clean && next dev -p 3000",
+    "build": "next build",
     "start": "next start",
     "lint": "eslint"
   },

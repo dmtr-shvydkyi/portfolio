@@ -83,7 +83,7 @@ function DesignCard({ title, subtitle, mediaSrc, links, dataNodeId }: DesignCard
             className={`absolute max-w-none object-50%-50% object-cover size-full transition-opacity duration-500 ease-out ${isMediaLoaded ? 'opacity-100' : 'opacity-0'}`} 
             src={mediaSrc}
             fill
-            onLoadingComplete={() => setIsMediaLoaded(true)}
+            onLoad={() => setIsMediaLoaded(true)}
           />
         )}
       </div>
