@@ -776,7 +776,7 @@ export default function Play() {
               </p>
             </div>
             <div className="mt-[16px] font-mono font-semibold leading-[16px] relative shrink-0 text-[12px] text-[rgba(255,255,255,0.32)] text-center tracking-[0.24px] w-full max-w-[280px]">
-              <p className="mb-[8px]">This was supposed to be a detailed case study. Then I got bored.</p>
+              <p>This was supposed to be a detailed case study. Then I got bored.</p>
             </div>
             <div 
               className={`${getButtonStyles()} mt-[24px]`}
