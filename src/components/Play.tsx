@@ -509,9 +509,9 @@ export default function Play() {
     }
   }, [direction, gameState]);
 
-  // Handle keyboard input - WASD only for game controls
+  // Handle keyboard input for game controls
   useEffect(() => {
-    if (gameState !== 'playing' && gameState !== 'paused') return;
+    if (gameState !== 'playing' && gameState !== 'paused' && gameState !== 'dying') return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       // Ignore if user is typing in an input field
@@ -522,18 +522,22 @@ export default function Play() {
       if (e.code === 'Space' || e.key === ' ') {
         e.preventDefault();
         e.stopPropagation();
-        setPressedKey(null);
-        setGameState(prevState => prevState === 'playing' ? 'paused' : 'playing');
+        if (gameState === 'playing' || gameState === 'paused') {
+          setPressedKey(null);
+          setGameState(prevState => prevState === 'playing' ? 'paused' : 'playing');
+        }
         return;
       }
 
       const key = e.key.toLowerCase();
+      const isArrowKey = ['arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(key);
+
+      if (isArrowKey) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
 
       if (gameState !== 'playing') {
-        if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(key)) {
-          e.preventDefault();
-          e.stopPropagation();
-        }
         return;
       }
 
@@ -572,7 +576,7 @@ export default function Play() {
 
     const handleKeyUp = (e: KeyboardEvent) => {
       const key = e.key.toLowerCase();
-      if (['w', 'a', 's', 'd'].includes(key)) {
+      if (['w', 'a', 's', 'd', 'arrowup', 'arrowleft', 'arrowdown', 'arrowright'].includes(key)) {
         setPressedKey(null);
       }
     };
