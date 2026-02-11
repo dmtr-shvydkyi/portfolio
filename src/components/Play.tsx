@@ -527,26 +527,37 @@ export default function Play() {
         return;
       }
 
-      if (gameState !== 'playing') return;
-
       const key = e.key.toLowerCase();
+
+      if (gameState !== 'playing') {
+        if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(key)) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+        return;
+      }
+
       let newDirection: Direction | null = null;
 
-      // Handle WASD keys only (not arrow keys)
+      // Handle WASD and arrow keys
       switch (key) {
         case 'w':
+        case 'arrowup':
           if (direction !== 'down') newDirection = 'up';
           setPressedKey('w');
           break;
         case 's':
+        case 'arrowdown':
           if (direction !== 'up') newDirection = 'down';
           setPressedKey('s');
           break;
         case 'a':
+        case 'arrowleft':
           if (direction !== 'right') newDirection = 'left';
           setPressedKey('a');
           break;
         case 'd':
+        case 'arrowright':
           if (direction !== 'left') newDirection = 'right';
           setPressedKey('d');
           break;
