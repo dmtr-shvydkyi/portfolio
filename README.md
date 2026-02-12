@@ -1,36 +1,55 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Dmytro Shvydkyi Portfolio
+
+Personal portfolio website built with Next.js App Router.
+
+## Source Of Truth
+
+The canonical product and technical documentation lives in `docs/website-prd.md`.
+
+Policy:
+- Every change to UI, behavior, content, state, API, analytics, SEO, or infrastructure must include a matching update to `docs/website-prd.md` in the same PR.
+- If code and docs conflict, treat docs as stale and update docs immediately before merge.
+
+## Tech Stack
+
+- Next.js 15 (App Router)
+- React 19
+- TypeScript (strict)
+- Tailwind CSS v4
+- Redis (snake leaderboard)
+- Vercel Analytics and Speed Insights
 
 ## Getting Started
 
-First, run the development server:
+Install dependencies:
+
+```bash
+npm install
+```
+
+Run local development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open `http://localhost:3000`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- `npm run dev` - start dev server on port 3000
+- `npm run clean` - remove `.next` cache
+- `npm run dev:clean` - clean then run dev server
+- `npm run build` - production build
+- `npm run start` - run production server
+- `npm run lint` - run ESLint
 
-## Learn More
+## Environment Variables
 
-To learn more about Next.js, take a look at the following resources:
+Leaderboard API requires Redis connection. Supported environment variable names:
+- `REDIS_URL`
+- `REDIS_TLS_URL`
+- `VERCEL_REDIS_URL`
+- `VERCEL_REDIS_TLS_URL`
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+If Redis is not configured, the site still renders, but leaderboard reads and writes will fail gracefully.
