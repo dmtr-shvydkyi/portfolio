@@ -22,10 +22,12 @@ export default function About() {
               Excited!
             </Link>
             <span> and handled both product and marketing design at the data-residency startup </span>
-            <Link theme="dark" href="https://incountry.com" className="inline font-bold text-white underline" style={{textTransform: 'none'}}>
-              InCountry
-            </Link>
-            <span>.</span>
+            <span className="inline whitespace-nowrap">
+              <Link theme="dark" href="https://incountry.com" className="inline font-bold text-white underline" style={{textTransform: 'none'}}>
+                InCountry
+              </Link>
+              <span>.</span>
+            </span>
           </p>
           <p className="leading-[20px] mb-[8px] text-[12px] normal-case">
             I got into design the day I opened my first MacBook and realized how great software can feel. That moment inspired me to start designing software myself and to learn everything around it: graphic design, motion design, development, management, and more.

@@ -178,6 +178,27 @@ export default function GlitchScramble({
     });
   };
 
+  const areRecordsCurrent = () => {
+    const root = rootRef.current;
+    if (!root) return false;
+    if (recordsRef.current.length === 0) return false;
+
+    for (const record of recordsRef.current) {
+      if (!root.contains(record.el) || record.el.dataset.glitchChar !== '1') return false;
+
+      const codeStr = record.el.dataset.glitchCode;
+      const code = codeStr ? Number.parseInt(codeStr, 10) : NaN;
+      const currentChar = Number.isFinite(code) ? String.fromCodePoint(code) : (record.el.textContent ?? '');
+      if (currentChar !== record.originalChar) return false;
+    }
+
+    return true;
+  };
+
+  const ensureRecordsCurrent = () => {
+    if (!areRecordsCurrent()) updateRecords();
+  };
+
   const updateCenters = () => {
     for (const record of recordsRef.current) {
       const rect = record.el.getBoundingClientRect();
@@ -330,7 +351,7 @@ export default function GlitchScramble({
         if (reducedMotionRef.current) return;
         hoveringRef.current = true;
         pointerRef.current = { x: e.clientX, y: e.clientY };
-        updateRecords();
+        ensureRecordsCurrent();
         updateCenters();
         startLoop();
       }}
@@ -349,7 +370,7 @@ export default function GlitchScramble({
           pointsRef.current.push({ x: clientX, y: clientY, t: now });
           lastMoveRef.current = { x: clientX, y: clientY, t: now };
           if (!activeRef.current) {
-            updateRecords();
+            ensureRecordsCurrent();
             updateCenters();
             startLoop();
           }
