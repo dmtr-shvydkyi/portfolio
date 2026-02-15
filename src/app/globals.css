@@ -1,4 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;600;700&display=swap');
 @import "tailwindcss";
 
 :root {
@@ -9,14 +8,14 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: 'Geist Mono', monospace;
-  --font-mono: 'Geist Mono', monospace;
+  --font-sans: var(--font-geist-mono), monospace;
+  --font-mono: var(--font-geist-mono), monospace;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: 'Geist Mono', monospace;
+  font-family: var(--font-geist-mono), monospace;
   margin: 0;
   padding: 0;
   height: 100vh;
@@ -28,11 +27,6 @@ body,
 #__next {
   height: 100%;
   width: 100%;
-}
-
-/* Ensure Geist Mono is used throughout */
-* {
-  font-family: 'Geist Mono', monospace;
 }
 
 /* Horizontal scrolling animation */
@@ -68,7 +62,7 @@ body,
 
 .horizontal-scrolling-items__item {
   white-space: nowrap;
-  font-family: 'Geist Mono', monospace;
+  font-family: var(--font-geist-mono), monospace;
   font-weight: 600;
   line-height: 16px;
   color: white;

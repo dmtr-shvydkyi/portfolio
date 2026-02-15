@@ -1,23 +1,35 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import SharedLayout from '@/components/SharedLayout';
 import Work from '@/components/Work';
 import About from '@/components/About';
-import Play from '@/components/Play';
 import Resume from '@/components/Resume';
 import { useKeyboardSound } from '@/hooks/useKeyboardSound';
+
+const Play = dynamic(() => import('@/components/Play'), {
+  ssr: false,
+  loading: () => null,
+});
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<'work' | 'info' | 'play' | 'resume'>('work');
   const [connectToggleTrigger, setConnectToggleTrigger] = useState(0);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [hasVisitedPlay, setHasVisitedPlay] = useState(false);
   const playSound = useKeyboardSound();
 
   // Fade in animation on mount
   useEffect(() => {
     setIsLoaded(true);
   }, []);
+
+  useEffect(() => {
+    if (activeTab === 'play') {
+      setHasVisitedPlay(true);
+    }
+  }, [activeTab]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -73,7 +85,7 @@ export default function Home() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [playSound, activeTab]);
+  }, [playSound]);
 
   return (
     <div className="relative size-full">
@@ -102,7 +114,7 @@ export default function Home() {
           <div 
             className={`absolute inset-0 flex transition-opacity duration-300 ${activeTab === 'play' ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
           >
-            <Play />
+            {(activeTab === 'play' || hasVisitedPlay) ? <Play /> : null}
           </div>
           <div 
             className={`absolute inset-0 flex transition-opacity duration-300 ${activeTab === 'resume' ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}

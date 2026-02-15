@@ -1,7 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // No rewrites needed when a real `/public/favicon.ico` exists
+  images: {
+    formats: ["image/avif", "image/webp"],
+  },
   turbopack: {
     root: process.cwd(),
   },
