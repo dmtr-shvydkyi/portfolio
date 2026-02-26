@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, type CSSProperties } from 'react';
 import { useKeyboardSound } from '@/hooks/useKeyboardSound';
-import Leaderboard, { type LeaderboardEntry } from '@/components/Leaderboard';
+import { type LeaderboardEntry } from '@/components/Leaderboard';
 
 type GameState = 'idle' | 'playing' | 'paused' | 'dying' | 'gameOver';
 type Direction = 'up' | 'down' | 'left' | 'right';
@@ -29,6 +29,7 @@ const STACK_GAP_PX = 8;
 const CRUMBLE_DURATION_MS = 320;
 const CRUMBLE_STAGGER_MS = 10;
 const FADE_DURATION_MS = 660;
+const LEADERBOARD_ENABLED = false;
 const LEADERBOARD_LIMIT = 5;
 const LEADERBOARD_COOKIE = 'snake_nick';
 const LEADERBOARD_API = '/api/snake/leaderboard';
@@ -78,7 +79,7 @@ export default function Play() {
   const [isGameOverVisible, setIsGameOverVisible] = useState(false);
   const [pressedKey, setPressedKey] = useState<string | null>(null);
   const [isMobileControls, setIsMobileControls] = useState(false);
-  const [leaderboardEntries, setLeaderboardEntries] = useState<LeaderboardEntry[]>([]);
+  const [, setLeaderboardEntries] = useState<LeaderboardEntry[]>([]);
   const [leaderboardNick, setLeaderboardNick] = useState<string | null>(null);
   
   const gameLoopRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -182,6 +183,8 @@ export default function Play() {
   }, [food]);
 
   const fetchLeaderboard = useCallback(async () => {
+    if (!LEADERBOARD_ENABLED) return;
+
     try {
       const response = await fetch(`${LEADERBOARD_API}?limit=${LEADERBOARD_LIMIT}`, {
         cache: 'no-store',
@@ -197,6 +200,8 @@ export default function Play() {
   }, []);
 
   const postLeaderboardScore = useCallback(async (value: number, nick: string) => {
+    if (!LEADERBOARD_ENABLED) return;
+
     try {
       await fetch(LEADERBOARD_API, {
         method: 'POST',
@@ -209,6 +214,8 @@ export default function Play() {
   }, []);
 
   useEffect(() => {
+    if (!LEADERBOARD_ENABLED) return;
+
     const existingNick = readCookie(LEADERBOARD_COOKIE);
     const nextNick = existingNick ?? generateNickname();
     if (!existingNick) {
@@ -269,12 +276,16 @@ export default function Play() {
   }, [boardSize]);
 
   useEffect(() => {
+    if (!LEADERBOARD_ENABLED) return;
+
     if (gameState === 'idle') {
       fetchLeaderboard();
     }
   }, [gameState, fetchLeaderboard]);
 
   useEffect(() => {
+    if (!LEADERBOARD_ENABLED) return;
+
     if (gameState !== 'gameOver') return;
 
     const nick = leaderboardNick ?? readCookie(LEADERBOARD_COOKIE) ?? generateNickname();
@@ -712,19 +723,6 @@ export default function Play() {
     return `${baseStyles} text-[rgba(255,255,255,0.88)]`;
   };
 
-  const leaderboardDivider = leaderboardEntries.length ? (
-    <div className="w-[80px] h-px bg-[rgba(255,255,255,0.08)]" />
-  ) : null;
-
-  const leaderboardSection = leaderboardEntries.length ? (
-    <div className="content-stretch flex flex-col gap-[16px] items-center relative shrink-0 w-full">
-      <p className="font-mono font-bold leading-[26px] relative shrink-0 text-[20px] md:text-[22px] text-white text-center uppercase w-full">
-        LEADERBOARD
-      </p>
-      <Leaderboard entries={leaderboardEntries} currentNick={leaderboardNick} />
-    </div>
-  ) : null;
-
   const finalBestScore = isNewBestScore ? score : bestScore;
   const gameOverContent = (
     <div className="content-stretch flex flex-col gap-[32px] items-center justify-center max-w-[400px] my-auto relative shrink-0 w-full">
@@ -766,8 +764,6 @@ export default function Play() {
           </p>
         </div>
       </div>
-      {leaderboardDivider}
-      {leaderboardSection}
     </div>
   );
 
@@ -805,8 +801,6 @@ export default function Play() {
               </p>
             </div>
           </div>
-          {leaderboardDivider}
-          {leaderboardSection}
         </div>
       </div>
     );
