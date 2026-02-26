@@ -52,6 +52,10 @@ body,
   height: 100%;
 }
 
+body[data-modal-open="true"] .horizontal-scrolling-items {
+  animation-play-state: paused;
+}
+
 
 @media (prefers-reduced-motion: reduce) {
   .horizontal-scrolling-items {
