@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 3000",
-    "clean": "node -e \"require('fs').rmSync('.next',{recursive:true,force:true});\"",
+    "clean": "node -e \"const fs=require('fs'); for (const dir of ['.next','.next-dev']) fs.rmSync(dir,{recursive:true,force:true});\"",
     "dev:clean": "npm run clean && next dev -p 3000",
     "build": "next build",
     "start": "next start",

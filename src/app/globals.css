@@ -1,8 +1,10 @@
 @import "tailwindcss";
+@source "./styleguide/**";
 
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --landing-scroll-duration: 560ms;
 }
 
 @theme inline {
@@ -29,6 +31,21 @@ body,
   width: 100%;
 }
 
+.landing-scroll-container {
+  --landing-scroll-viewport: 0px;
+  --landing-fit-height: var(--landing-scroll-viewport);
+}
+
+.landing-fit-section {
+  height: var(--landing-fit-height);
+  min-height: var(--landing-fit-height);
+  max-height: var(--landing-fit-height);
+  box-sizing: border-box;
+  padding-top: 0;
+  padding-bottom: 8px;
+  overflow: hidden;
+}
+
 /* Horizontal scrolling animation */
 @keyframes infiniteScroll {
   from {
@@ -51,11 +68,6 @@ body,
   align-items: center;
   height: 100%;
 }
-
-body[data-modal-open="true"] .horizontal-scrolling-items {
-  animation-play-state: paused;
-}
-
 
 @media (prefers-reduced-motion: reduce) {
   .horizontal-scrolling-items {

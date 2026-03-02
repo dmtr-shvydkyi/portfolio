@@ -1,0 +1,7 @@
+{
+  "/api/snake/leaderboard/route": "app/api/snake/leaderboard/route.js",
+  "/favicon.ico/route": "app/favicon.ico/route.js",
+  "/page": "app/page.js",
+  "/work/[slug]/page": "app/work/[slug]/page.js",
+  "/styleguide/page": "app/styleguide/page.js"
+}

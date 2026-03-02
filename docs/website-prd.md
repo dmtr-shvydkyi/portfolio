@@ -2,7 +2,7 @@
 
 Status: Active
 Owner: Portfolio maintainer
-Last updated: 2026-02-12
+Last updated: 2026-03-01
 Canonical path: `docs/website-prd.md`
 
 ## 1) Purpose
@@ -35,7 +35,7 @@ Scope that requires doc updates includes (not limited to):
 
 ## 3) Product Summary
 
-The site is a highly stylized, single-route portfolio with tab-based sections:
+The site is a highly stylized, single-route portfolio with one long landing organized into section anchors:
 - Work
 - About
 - Play (custom Snake game)
@@ -71,13 +71,13 @@ Framework:
 
 High-level tree:
 - `src/app/layout.tsx` - root layout, metadata, analytics wrappers
-- `src/app/page.tsx` - main tab shell and global keyboard tab switching
+- `src/app/page.tsx` - main landing shell, hash-based section navigation, and global keyboard section switching
 - `src/components/SharedLayout.tsx` - shared two-panel layout
 - `src/components/*` - tab content and reusable UI
 - `src/app/api/snake/leaderboard/route.ts` - leaderboard API
 
 Routes:
-- `/` - primary app shell with tabs
+- `/` - primary app shell with anchored long-form landing sections
 - `/api/snake/leaderboard` - leaderboard GET/POST
 - `not-found.tsx` -> custom `404`
 
@@ -95,7 +95,7 @@ Global layout behavior:
 
 Global interaction model:
 - Keyboard sounds on most tab/button/link interactions.
-- Number keys and arrow keys control tab selection globally.
+- Number keys and arrow keys control section scrolling globally.
 - Site-level white overlay fades out on initial load.
 
 ## 7) Detailed Feature Specification
@@ -111,13 +111,18 @@ Defined behavior:
 - Configures Open Graph and Twitter preview with `/og.jpg`.
 - Includes Vercel Analytics and Speed Insights in `<body>`.
 
-### 7.2 Home Shell and Tab Routing
+### 7.2 Home Shell and Section Routing
 
 File: `src/app/page.tsx`
 
-Tab model:
+Section model:
 - Internal tab states: `work | info | play | resume`.
 - Initial tab: `work`.
+- Hash map:
+  - `work -> #work`
+  - `info -> #about`
+  - `play -> #play`
+  - `resume -> #cv`
 
 Global keyboard shortcuts:
 - `1` -> Work
@@ -131,8 +136,18 @@ Guardrails:
 - Keyboard shortcuts are ignored while typing in `input`/`textarea`.
 
 Render model:
-- All tab panels are mounted and layered absolutely.
-- Inactive tabs use `opacity-0` + `pointer-events-none`.
+- Right pane renders one vertical scroll container with all sections in document order:
+  - Work (cards-first, natural height)
+  - About (viewport-fit section with title row)
+  - Play (viewport-fit section with title row)
+  - CV (viewport-fit section with title row)
+- Bottom tab UI remains persistent and acts as smooth-scroll controls.
+- Active tab highlight is derived from visible section (IntersectionObserver + nearest-top fallback).
+
+URL and history:
+- Direct hash deep links are supported (`/#about`, `/#play`, `/#cv`).
+- Legacy query links (`/?tab=play`) are normalized to hash routing on load.
+- Tab clicks push history entries; passive section changes replace hash without adding history entries.
 
 ### 7.3 Shared Layout
 
@@ -145,17 +160,18 @@ Left panel:
 - Bottom status bar with Time and RunningNews ticker
 
 Right panel:
-- Active tab content region
+- Anchored long-form section scroller
 - Bottom controls: TabsNavigation + ConnectButton
 
-### 7.4 Work Tab
+### 7.4 Work Section
 
 Files:
 - `src/components/Work.tsx`
 - `src/components/ScrollCards.tsx`
 
 Behavior:
-- Vertical scroll list of media cards (video/image).
+- First section in the long landing, with cards-first treatment and no extra title row.
+- Vertical list of media cards (video/image).
 - Cards show overlay metadata and outbound links on hover.
 - Videos autoplay, loop, muted, and attempt recovery on `canplay`.
 
@@ -163,7 +179,7 @@ Content source:
 - Card data is hardcoded in `ScrollCards.tsx`.
 - Assets are served from `/public/*`.
 
-### 7.5 About Tab
+### 7.5 About Section
 
 Files:
 - `src/components/About.tsx`
@@ -173,12 +189,13 @@ Behavior:
 - Displays biography copy with inline outbound links.
 - Applies pointer-trail glitch scramble effect to non-interactive text characters.
 - Interactive elements (links, buttons, form controls) are intentionally excluded from scrambling.
+- On home route, About runs in landing mode (no nested independent scroll; section fit handled by parent).
 
 Accessibility/resilience:
 - Effect is disabled when `prefers-reduced-motion: reduce`.
 - Character centers are recomputed on resize and scroll for accurate effect area.
 
-### 7.6 Play Tab (Snake Game)
+### 7.6 Play Section (Snake Game)
 
 Files:
 - `src/components/Play.tsx`
@@ -232,7 +249,10 @@ Audio:
 - Local sound files: `/eat.mp3`, `/dead.mp3`
 - Volume for both effects set to `0.5`
 
-### 7.7 Resume Tab
+Layout mode:
+- On home route, Play runs in landing mode to avoid nested independent section scrolling.
+
+### 7.7 Resume Section
 
 File: `src/components/Resume.tsx`
 
@@ -240,6 +260,7 @@ Behavior:
 - Shows resume preview image.
 - Image and "Open" link both open external Google Drive CV URL.
 - Clicks trigger keyboard sound.
+- On home route, Resume runs in landing mode (section fit handled by parent).
 
 ### 7.8 Connect Menu
 
@@ -407,6 +428,16 @@ Technical improvement opportunities:
 - Real-time multiplayer or shared game sessions
 
 ## 16) Change Log
+
+### 2026-03-01
+- Refactored home route from absolute tab-swapped panels to one anchored long-form landing.
+- Added hash-first navigation (`/#work`, `/#about`, `/#play`, `/#cv`) with legacy `?tab=` compatibility mapping.
+- Updated bottom tab behavior to smooth-scroll between sections and track active section via observer/fallback logic.
+- Added viewport-fit section behavior for About, Play, and CV with parent-controlled sizing and no nested section scrolling.
+- Updated keyboard tab shortcuts to scroll between sections instead of swapping hidden tab layers.
+- Updated Work cards: Luminar Collage subtitle is now `Case Study`; route cards no longer show link chips.
+- Fixed tab selected-state hover styling and tuned active-tab switching to change later during scroll.
+- Tuned landing section sizing/alignment to prevent next-section divider bleed and stabilized Play section height after game over.
 
 ### 2026-02-12
 - Created initial full PRD/technical specification from current codebase behavior.

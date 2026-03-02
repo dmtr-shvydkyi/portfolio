@@ -77,9 +77,9 @@ export default function ConnectButton({ className, state = "default", toggleTrig
 
   return (
     <div className={`${className} relative overflow-hidden`}>
-      {/* Opened state */}
+      {/* Opened state — when open, render on top so dropdown receives events; when closed, stay below default button */}
       <div 
-        className={`bg-white content-stretch flex flex-col gap-[4px] items-end justify-end absolute right-0 bottom-0 transition-opacity ease-in-out z-50 ${isOpened ? 'opacity-100 duration-300' : 'opacity-0 duration-150 pointer-events-none'}`}
+        className={`bg-white content-stretch flex flex-col gap-[4px] items-end justify-end absolute right-0 bottom-0 transition-opacity ease-in-out ${isOpened ? 'z-[60] opacity-100 duration-300' : 'z-50 opacity-0 duration-150 pointer-events-none'}`}
         style={{ width: '83px' }}
         data-name="state=opened" 
         data-node-id="590:10363"
@@ -132,9 +132,9 @@ export default function ConnectButton({ className, state = "default", toggleTrig
         </button>
       </div>
 
-      {/* Default state */}
+      {/* Default state — when closed, render on top (z-[55]) so hover/click always hit the button */}
       <button 
-        className={`transition-opacity ease-in-out ${isOpened ? 'opacity-0 duration-150 pointer-events-none' : 'opacity-100 duration-300'}`}
+        className={`relative z-[55] transition-opacity ease-in-out ${isOpened ? 'opacity-0 duration-150 pointer-events-none' : 'opacity-100 duration-300'}`}
         data-name="state=default" 
         data-node-id="590:10362"
         onMouseDown={handleConnectMouseDown}

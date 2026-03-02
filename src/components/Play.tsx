@@ -60,7 +60,11 @@ const generateNickname = () => {
   return `${randomBlock()}.${randomBlock()}.${randomBlock()}.${suffix}`;
 };
 
-export default function Play() {
+interface PlayProps {
+  landingMode?: boolean;
+}
+
+export default function Play({ landingMode = false }: PlayProps) {
   const [gameState, setGameState] = useState<GameState>('idle');
   const [actualCellSize, setActualCellSize] = useState(BASE_CELL_SIZE);
   const [boardSize, setBoardSize] = useState(GRID_SIZE * BASE_CELL_SIZE);
@@ -726,8 +730,18 @@ export default function Play() {
   ) : null;
 
   const finalBestScore = isNewBestScore ? score : bestScore;
+  const idleContainerClass = landingMode
+    ? 'box-border content-stretch flex flex-col gap-0 grow items-center justify-center min-h-0 min-w-px overflow-hidden p-[8px] relative shrink-0 w-full h-full'
+    : 'basis-0 box-border content-stretch flex flex-col gap-0 grow items-center justify-start min-h-px min-w-px overflow-x-clip overflow-y-auto p-[8px] relative shrink-0 w-full';
+  const gameOverContainerClass = landingMode
+    ? 'box-border content-stretch flex flex-col gap-[8px] grow items-center justify-center min-h-0 min-w-px overflow-hidden p-[8px] relative shrink-0 w-full h-full transition-opacity'
+    : 'basis-0 box-border content-stretch flex flex-col gap-[8px] grow items-center justify-start min-h-px min-w-px overflow-x-clip overflow-y-auto p-[8px] relative shrink-0 w-full transition-opacity';
+  const introStackClass = landingMode
+    ? 'content-stretch flex flex-col gap-[32px] items-center justify-center max-w-[400px] mt-[8px] relative shrink-0 w-full'
+    : 'content-stretch flex flex-col gap-[32px] items-center justify-center max-w-[400px] my-auto relative shrink-0 w-full';
+
   const gameOverContent = (
-    <div className="content-stretch flex flex-col gap-[32px] items-center justify-center max-w-[400px] my-auto relative shrink-0 w-full">
+    <div className={introStackClass}>
       <div className="content-stretch flex flex-col items-center justify-center relative shrink-0 w-full">
         <div className="content-stretch flex flex-col font-mono font-semibold gap-[8px] items-center relative shrink-0 uppercase w-full">
           {!isNewBestScore && (
@@ -774,8 +788,8 @@ export default function Play() {
   // Idle state (empty state)
   if (gameState === 'idle') {
     return (
-      <div className="basis-0 box-border content-stretch flex flex-col gap-0 grow items-center justify-start min-h-px min-w-px overflow-x-clip overflow-y-auto p-[8px] relative shrink-0 w-full">
-        <div className="content-stretch flex flex-col gap-[32px] items-center justify-center max-w-[400px] my-auto relative shrink-0 w-full">
+      <div className={idleContainerClass}>
+        <div className={introStackClass}>
           <div className="content-stretch flex flex-col items-center justify-center relative shrink-0 w-full">
             <div className="content-stretch flex flex-col font-mono font-semibold gap-[8px] items-center relative shrink-0 uppercase w-full">
               <div className="content-stretch flex gap-[8px] items-start justify-center leading-[16px] relative shrink-0 text-[12px] text-[rgba(255,255,255,0.4)] text-nowrap tracking-[0.24px] whitespace-pre">
@@ -1101,7 +1115,7 @@ export default function Play() {
   // Game over state
   return (
     <div
-      className="basis-0 box-border content-stretch flex flex-col gap-[8px] grow items-center justify-start min-h-px min-w-px overflow-x-clip overflow-y-auto p-[8px] relative shrink-0 w-full transition-opacity"
+      className={gameOverContainerClass}
       style={{
         opacity: isGameOverVisible ? 1 : 0,
         transitionDuration: `${FADE_DURATION_MS}ms`,
