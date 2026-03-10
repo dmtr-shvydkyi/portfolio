@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect } from 'react';
+import { useCallback, useLayoutEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import LogoMain from './LogoMain';
 import TabsNavigation from './TabsNavigation';
@@ -11,6 +11,13 @@ import Link from './Link';
 import { useNavigation } from './NavigationContext';
 import { TAB_HREFS, type TabId } from '@/types/tabs';
 import { usePageTransition } from '@/hooks/usePageTransition';
+import {
+  clearPageTransitionState,
+  getContentAreaElement,
+  PAGE_TRANSITION_ENTER_DURATION_FALLBACK_MS,
+  readDurationFromCss,
+  setPageTransitionStage,
+} from '@/lib/pageTransition';
 
 interface PersistentShellProps {
   children: React.ReactNode;
@@ -18,12 +25,12 @@ interface PersistentShellProps {
 
 const TARGET_HOME_TAB_KEY = 'portfolio-home-target-tab';
 const RESTORE_HOME_SCROLL_KEY = 'portfolio-restore-home-scroll';
+const ENTER_DURATION_VARIABLE = '--route-transition-enter-duration';
 
 export default function PersistentShell({ children }: PersistentShellProps) {
   const {
     activeTab,
     connectToggleTrigger,
-    loadingPhase,
     dispatchTabChange,
   } = useNavigation();
 
@@ -58,16 +65,44 @@ export default function PersistentShell({ children }: PersistentShellProps) {
     ? 'basis-0 box-border content-stretch flex flex-col gap-[8px] grow items-start min-h-px min-w-px overflow-x-clip overflow-y-hidden relative shrink-0 w-full'
     : 'basis-0 box-border content-stretch flex flex-col gap-[8px] grow items-start min-h-px min-w-px overflow-x-clip overflow-y-hidden px-[8px] pt-[8px] relative shrink-0 w-full';
 
-  // Loading phase data attribute on html element
-  useEffect(() => {
-    document.documentElement.dataset.loadingPhase = loadingPhase;
-    if (loadingPhase === 'done') {
-      const timer = setTimeout(() => {
-        delete document.documentElement.dataset.loadingPhase;
-      }, 600);
-      return () => clearTimeout(timer);
+  useLayoutEffect(() => {
+    if (typeof document === 'undefined') {
+      return;
     }
-  }, [loadingPhase]);
+
+    const root = document.documentElement;
+    if (!root.dataset.transitionDirection) {
+      return;
+    }
+
+    if (root.dataset.transitionStage !== 'leaving' && root.dataset.transitionStage !== 'between') {
+      return;
+    }
+
+    const contentArea = getContentAreaElement();
+    if (!contentArea) {
+      clearPageTransitionState(root);
+      return;
+    }
+
+    const enterDurationMs = readDurationFromCss(
+      ENTER_DURATION_VARIABLE,
+      PAGE_TRANSITION_ENTER_DURATION_FALLBACK_MS,
+    );
+
+    contentArea.style.pointerEvents = 'none';
+    contentArea.style.willChange = 'opacity';
+    setPageTransitionStage(root, 'entering');
+
+    window.requestAnimationFrame(() => {
+      delete root.dataset.transitionStage;
+      window.setTimeout(() => {
+        contentArea.style.pointerEvents = '';
+        contentArea.style.willChange = '';
+        delete root.dataset.transitionDirection;
+      }, enterDurationMs);
+    });
+  }, [pathname]);
 
   return (
     <div className="app-shell bg-white content-stretch flex flex-col items-start relative w-full md:grid md:grid-cols-[repeat(4,_minmax(0px,_1fr))]">

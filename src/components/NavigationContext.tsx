@@ -10,21 +10,16 @@ interface NavigationContextValue {
   setActiveTab: (tab: TabId) => void;
   connectToggleTrigger: number;
   triggerConnectToggle: () => void;
-  loadingPhase: LoadingPhase;
-  setLoadingPhase: (phase: LoadingPhase) => void;
   setOnTabChange: (handler: TabChangeHandler | null) => void;
   /** Call the registered handler. Returns true if handled. */
   dispatchTabChange: (tab: TabId) => boolean;
 }
-
-export type LoadingPhase = 'hidden' | 'logo' | 'sidebar' | 'content' | 'done';
 
 const NavigationContext = createContext<NavigationContextValue | null>(null);
 
 export function NavigationProvider({ children }: { children: ReactNode }) {
   const [activeTab, setActiveTabState] = useState<TabId>('work');
   const [connectToggleTrigger, setConnectToggleTrigger] = useState(0);
-  const [loadingPhase, setLoadingPhase] = useState<LoadingPhase>('done');
   const onTabChangeRef = useRef<TabChangeHandler | null>(null);
 
   const setActiveTab = useCallback((tab: TabId) => {
@@ -55,8 +50,6 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
         setActiveTab,
         connectToggleTrigger,
         triggerConnectToggle,
-        loadingPhase,
-        setLoadingPhase,
         setOnTabChange,
         dispatchTabChange,
       }}

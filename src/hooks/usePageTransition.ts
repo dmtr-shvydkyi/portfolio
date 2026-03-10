@@ -1,47 +1,90 @@
 'use client';
 
-import { useCallback } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import {
+  clearPageTransitionState,
+  getContentAreaElement,
+  PAGE_TRANSITION_EXIT_DURATION_FALLBACK_MS,
+  prefersReducedMotion,
+  readDurationFromCss,
+  setPageTransitionDirection,
+  setPageTransitionStage,
+  type PageTransitionDirection,
+} from '@/lib/pageTransition';
 
-type DocumentWithViewTransition = Document & {
-  startViewTransition?: (callback: () => Promise<void>) => void;
-};
-
-const supportsViewTransitions =
-  typeof document !== 'undefined' && 'startViewTransition' in document;
+const EXIT_DURATION_VARIABLE = '--route-transition-exit-duration';
 
 export function usePageTransition() {
   const router = useRouter();
+  const exitTimerRef = useRef<number | null>(null);
+
+  useEffect(() => () => {
+    if (exitTimerRef.current !== null) {
+      window.clearTimeout(exitTimerRef.current);
+      exitTimerRef.current = null;
+
+      if (typeof document !== 'undefined') {
+        const root = document.documentElement;
+        clearPageTransitionState(root);
+        const contentArea = getContentAreaElement();
+        if (contentArea) {
+          contentArea.style.pointerEvents = '';
+          contentArea.style.willChange = '';
+        }
+      }
+    }
+  }, []);
 
   const navigate = useCallback(
-    (href: string, direction: 'forward' | 'back' = 'forward') => {
-      if (!supportsViewTransitions) {
-        // Fallback: just navigate — CSS classes handle a crossfade
-        document.documentElement.dataset.transitionDirection = direction;
+    (href: string, direction: PageTransitionDirection = 'forward') => {
+      if (typeof document === 'undefined') {
         router.push(href);
-        // Clean up attribute after transition settles
-        setTimeout(() => {
-          delete document.documentElement.dataset.transitionDirection;
-        }, 600);
         return;
       }
 
-      document.documentElement.dataset.transitionDirection = direction;
-      const documentWithViewTransition = document as DocumentWithViewTransition;
+      const root = document.documentElement;
+      if (
+        root.dataset.transitionStage === 'leaving'
+        || root.dataset.transitionStage === 'between'
+        || root.dataset.transitionStage === 'entering'
+      ) {
+        return;
+      }
 
-      documentWithViewTransition.startViewTransition?.(() => {
+      setPageTransitionDirection(root, direction);
+
+      if (prefersReducedMotion()) {
+        clearPageTransitionState(root);
         router.push(href);
-        // Return a promise that resolves after a tick to let React update
-        return new Promise<void>((resolve) => {
-          // Wait for Next.js to start rendering the new page
-          setTimeout(resolve, 100);
-        });
-      });
+        return;
+      }
 
-      // Clean up direction attribute after transition completes
-      setTimeout(() => {
-        delete document.documentElement.dataset.transitionDirection;
-      }, 800);
+      const contentArea = getContentAreaElement();
+      if (!contentArea) {
+        clearPageTransitionState(root);
+        router.push(href);
+        return;
+      }
+
+      contentArea.style.pointerEvents = 'none';
+      contentArea.style.willChange = 'opacity';
+      setPageTransitionStage(root, 'leaving');
+
+      const exitDurationMs = readDurationFromCss(
+        EXIT_DURATION_VARIABLE,
+        PAGE_TRANSITION_EXIT_DURATION_FALLBACK_MS,
+      );
+
+      if (exitTimerRef.current !== null) {
+        window.clearTimeout(exitTimerRef.current);
+      }
+
+      exitTimerRef.current = window.setTimeout(() => {
+        exitTimerRef.current = null;
+        setPageTransitionStage(root, 'between');
+        router.push(href);
+      }, exitDurationMs);
     },
     [router]
   );

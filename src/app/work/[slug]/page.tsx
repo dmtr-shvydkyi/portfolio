@@ -3,6 +3,8 @@ import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import CaseStudyHeaderActions from '@/components/CaseStudyHeaderActions';
 import CaseStudyHeroTitle from '@/components/CaseStudyHeroTitle';
+import CaseStudyHeroMedia from '@/components/CaseStudyHeroMedia';
+import BlurRevealImage from '@/components/BlurRevealImage';
 import Link from '@/components/Link';
 import CaseStudySetup from '@/components/CaseStudySetup';
 import { getWorkProjectBySlug, workProjectSlugs, type WorkProject, type WorkProjectLink } from '@/data/workProjects';
@@ -60,16 +62,9 @@ function LuminarCasePage({ project }: { project: WorkProject }) {
         </div>
 
         <div className="relative aspect-[944/531] shrink-0 w-full bg-[#0f0f0f]">
-          <video
-            className="absolute inset-0 size-full max-w-none object-cover"
-            autoPlay
-            loop
-            muted
-            playsInline
-            preload="auto"
-          >
-            <source src={caseStudy.heroVideoSrc} type="video/mp4" />
-          </video>
+          <CaseStudyHeroMedia
+            src={caseStudy.heroVideoSrc}
+          />
         </div>
 
         <div className="grid w-full max-w-[960px] grid-cols-1 gap-[16px] pb-[32px] text-[12px] md:grid-cols-5 md:gap-[8px]">
@@ -119,15 +114,12 @@ function LuminarCasePage({ project }: { project: WorkProject }) {
 
         {caseStudy.sectionMedia.map((src, index) => (
           <div key={src} className="relative aspect-[800/540] shrink-0 w-full">
-            <Image
+            <BlurRevealImage
               src={src}
               alt={`Luminar Collage section ${index + 1}`}
-              fill
               sizes="(max-width: 1024px) calc(100vw - 16px), 944px"
-              loading="lazy"
-              placeholder={blurDataMap[src] ? 'blur' : 'empty'}
+              quality={90}
               blurDataURL={blurDataMap[src]}
-              className="absolute inset-0 size-full max-w-none object-cover"
             />
           </div>
         ))}
@@ -154,16 +146,9 @@ function LightDepthPlaceholderPage({ project }: { project: WorkProject }) {
 
         <div className="content-stretch flex flex-col items-start p-[8px] relative shrink-0 w-full">
           <div className="relative aspect-[944/531] w-full bg-[#0f0f0f]">
-            <video
-              className="absolute inset-0 size-full max-w-none object-cover"
-              autoPlay
-              loop
-              muted
-              playsInline
-              preload="auto"
-            >
-              <source src={project.mediaSrc} type="video/mp4" />
-            </video>
+            <CaseStudyHeroMedia
+              src={project.mediaSrc}
+            />
           </div>
         </div>
 
