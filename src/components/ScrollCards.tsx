@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { workProjects, type WorkProject, type WorkProjectInteraction, type WorkProjectLink } from '@/data/workProjects';
 import { blurDataMap } from '@/data/blurData';
 import Link from './Link';
+import { useKeyboardSound } from '@/hooks/useKeyboardSound';
 import { usePageTransition } from '@/hooks/usePageTransition';
 
 interface ScrollCardsProps {
@@ -29,6 +30,15 @@ const BLUR_DATA_URL =
 const HOME_SCROLL_TOP_KEY = 'portfolio-home-scroll-top';
 const MOBILE_CARD_INSET = 8;
 const MOBILE_METADATA_GAP = 8;
+const MOBILE_TEXT_CHIP_HORIZONTAL_PADDING = 24;
+const MOBILE_ACTIVE_CARD_ANCHOR_RATIO = 0.42;
+const MOBILE_CHIP_BACKGROUND = 'rgba(13,13,13,0.52)';
+const MOBILE_BACKDROP_FILTER = 'blur(24px) saturate(135%)';
+const MOBILE_BACKDROP_STYLE: CSSProperties = {
+  backdropFilter: MOBILE_BACKDROP_FILTER,
+  WebkitBackdropFilter: MOBILE_BACKDROP_FILTER,
+  backgroundColor: MOBILE_CHIP_BACKGROUND,
+};
 
 function findScrollHost(node: HTMLElement): HTMLElement | Window {
   const landingContainer = node.closest('.landing-scroll-container');
@@ -85,7 +95,7 @@ function DesignCard({
   const [showMobileSubtitle, setShowMobileSubtitle] = useState(false);
   const [mobileTextMaxWidth, setMobileTextMaxWidth] = useState<number | null>(null);
   const isVideo = mediaSrc.endsWith('.mp4') || mediaSrc.endsWith('.mov');
-  const [isMediaLoaded, setIsMediaLoaded] = useState(isVideo);
+  const [isMediaLoaded, setIsMediaLoaded] = useState(false);
   const [shouldLoadVideo, setShouldLoadVideo] = useState(!isVideo);
   const cardRef = useRef<HTMLDivElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -94,9 +104,15 @@ function DesignCard({
   const dividerMeasureRef = useRef<HTMLSpanElement | null>(null);
   const subtitleMeasureRef = useRef<HTMLSpanElement | null>(null);
   const { navigate } = usePageTransition();
+  const playSound = useKeyboardSound();
   const videoType = mediaSrc.endsWith('.mov') ? 'video/quicktime' : 'video/mp4';
   const isRouteCard = interaction === 'route' && Boolean(routeHref);
   const firstLink = links?.[0];
+
+  useEffect(() => {
+    setIsMediaLoaded(false);
+    setShouldLoadVideo(!isVideo);
+  }, [isVideo, mediaSrc]);
 
   useEffect(() => {
     if (!isVideo || shouldLoadVideo) return;
@@ -135,6 +151,11 @@ function DesignCard({
   }, [isVideo, shouldLoadVideo]);
 
   useEffect(() => {
+    if (!subtitle) {
+      setShowMobileSubtitle(false);
+      return;
+    }
+
     if (supportsHover || !isMobileActive) {
       setShowMobileSubtitle(false);
       setMobileTextMaxWidth(null);
@@ -148,27 +169,31 @@ function DesignCard({
       const innerWidth = Math.max(cardWidth - MOBILE_CARD_INSET * 2, 0);
       const linkWidth = firstLink && mobileLinkRef.current ? mobileLinkRef.current.offsetWidth : 0;
       const availableWidth = Math.max(innerWidth - linkWidth - (firstLink ? MOBILE_METADATA_GAP : 0), 0);
+      const availableTextWidth = Math.max(availableWidth - MOBILE_TEXT_CHIP_HORIZONTAL_PADDING, 0);
 
       setMobileTextMaxWidth(availableWidth);
-
-      if (!subtitle) {
-        setShowMobileSubtitle(false);
-        return;
-      }
 
       const titleWidth = titleMeasureRef.current?.scrollWidth ?? 0;
       const dividerWidth = dividerMeasureRef.current?.scrollWidth ?? 0;
       const subtitleWidth = subtitleMeasureRef.current?.scrollWidth ?? 0;
-      const subtitleFits = titleWidth + dividerWidth + subtitleWidth <= availableWidth;
+      const subtitleFits = titleWidth + dividerWidth + subtitleWidth + 2 <= availableTextWidth;
 
       setShowMobileSubtitle(subtitleFits);
     };
 
-    updateMobileLayout();
+    let cancelled = false;
+    const safeUpdate = () => { if (!cancelled) updateMobileLayout(); };
+
+    safeUpdate();
+
+    // Re-measure after fonts load — scrollWidth is inaccurate with fallback fonts
+    if (document.fonts?.status !== 'loaded') {
+      document.fonts.ready.then(() => requestAnimationFrame(safeUpdate));
+    }
 
     let resizeObserver: ResizeObserver | null = null;
     if (typeof ResizeObserver !== 'undefined') {
-      resizeObserver = new ResizeObserver(updateMobileLayout);
+      resizeObserver = new ResizeObserver(safeUpdate);
       if (cardRef.current) {
         resizeObserver.observe(cardRef.current);
       }
@@ -176,17 +201,18 @@ function DesignCard({
         resizeObserver.observe(mobileLinkRef.current);
       }
     } else {
-      window.addEventListener('resize', updateMobileLayout);
+      window.addEventListener('resize', safeUpdate);
     }
 
     return () => {
+      cancelled = true;
       if (resizeObserver) {
         resizeObserver.disconnect();
       } else {
-        window.removeEventListener('resize', updateMobileLayout);
+        window.removeEventListener('resize', safeUpdate);
       }
     };
-  }, [firstLink, isMobileActive, subtitle, supportsHover]);
+  }, [firstLink, isMobileActive, subtitle, supportsHover, title]);
 
   const setCombinedCardRef = useCallback((node: HTMLDivElement | null) => {
     cardRef.current = node;
@@ -195,6 +221,8 @@ function DesignCard({
 
   const handleOpen = () => {
     if (!isRouteCard || !routeHref) return;
+
+    playSound();
 
     const container = document.querySelector('.landing-scroll-container');
     if (container instanceof HTMLElement) {
@@ -206,10 +234,9 @@ function DesignCard({
 
   const isDesktopOverlayVisible = supportsHover && isHovered;
   const isMobileOverlayVisible = !supportsHover && isMobileActive;
-  const mobileTextStyle: CSSProperties | undefined = mobileTextMaxWidth !== null
+  const mobileTextStyle: CSSProperties | undefined = showMobileSubtitle && mobileTextMaxWidth !== null
     ? { maxWidth: `${mobileTextMaxWidth}px` }
     : undefined;
-
   return (
     <div
       ref={setCombinedCardRef}
@@ -237,19 +264,16 @@ function DesignCard({
       }}
     >
       <div aria-hidden="true" className="absolute inset-0 pointer-events-none">
-        <div className="absolute bg-[#0f0f0f] inset-0" />
+        <div className="absolute inset-0 bg-[#0f0f0f]" />
         {isVideo ? (
           <video
             ref={videoRef}
-            className={`absolute max-w-none object-50%-50% object-cover size-full transition-opacity duration-500 ease-out ${isMediaLoaded ? 'opacity-100' : 'opacity-0'}`}
+            className={`absolute inset-0 max-w-none object-50%-50% object-cover size-full transition-opacity duration-500 ease-out ${isMediaLoaded ? 'opacity-100' : 'opacity-0'}`}
             autoPlay={shouldLoadVideo}
             loop
             muted
             playsInline
             preload={shouldLoadVideo ? 'metadata' : 'none'}
-            onError={() => {
-              setIsMediaLoaded(true);
-            }}
             onLoadedData={() => setIsMediaLoaded(true)}
             onLoadedMetadata={() => setIsMediaLoaded(true)}
             onCanPlay={() => setIsMediaLoaded(true)}
@@ -259,7 +283,7 @@ function DesignCard({
         ) : (
           <Image
             alt={title}
-            className={`absolute max-w-none object-50%-50% object-cover size-full transition-opacity duration-500 ease-out ${isMediaLoaded ? 'opacity-100' : 'opacity-0'}`}
+            className={`absolute inset-0 max-w-none object-50%-50% object-cover size-full transition-opacity duration-500 ease-out ${isMediaLoaded ? 'opacity-100' : 'opacity-0'}`}
             src={mediaSrc}
             fill
             sizes="(max-width: 768px) 100vw, 50vw"
@@ -307,72 +331,87 @@ function DesignCard({
       {!supportsHover && (
         <>
           <div
-            className={`absolute bottom-[8px] left-[8px] right-[8px] z-10 flex items-end justify-between gap-[8px] pointer-events-none transition-[opacity,transform] duration-200 ease-out motion-reduce:transition-none ${isMobileOverlayVisible ? 'translate-y-0 opacity-100' : 'translate-y-[4px] opacity-0'}`}
+            className="absolute bottom-[8px] left-[8px] right-[8px] z-10 flex items-end justify-between gap-[8px] pointer-events-none"
           >
-            <div
-              className="min-w-0 backdrop-blur-[60px] backdrop-filter bg-[rgba(13,13,13,0.64)] px-[12px] py-[10px]"
-              style={mobileTextStyle}
-            >
-              <div className="flex min-w-0 items-center gap-[4px]">
-                <p className="min-w-0 truncate font-mono font-semibold text-[12px] leading-[16px] tracking-[0.24px] text-[rgba(255,255,255,0.8)] uppercase">
-                  {title}
-                </p>
-                {subtitle && showMobileSubtitle ? (
-                  <div className="flex shrink-0 items-center gap-[4px] font-mono font-semibold text-[12px] leading-[16px] tracking-[0.24px] text-[rgba(255,255,255,0.32)] uppercase">
-                    <p className="w-[8px] shrink-0 text-center">·</p>
-                    <p className="shrink-0 whitespace-pre">{subtitle}</p>
-                  </div>
-                ) : null}
+            <div className="relative min-w-0 overflow-hidden" style={mobileTextStyle}>
+              <div
+                aria-hidden="true"
+                className={`absolute inset-0 transition-opacity duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none ${isMobileOverlayVisible ? 'opacity-100' : 'opacity-[0.01]'}`}
+                style={MOBILE_BACKDROP_STYLE}
+              />
+              <div
+                className={`relative px-[12px] py-[10px] transition-opacity duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none ${isMobileOverlayVisible ? 'opacity-100' : 'opacity-0'}`}
+              >
+                <div className="flex items-center gap-[4px]">
+                  <p className="min-w-0 overflow-hidden text-ellipsis whitespace-pre font-mono font-semibold text-[12px] leading-[16px] tracking-[0.24px] text-[rgba(255,255,255,0.8)] uppercase">
+                    {title}
+                  </p>
+                  {subtitle && showMobileSubtitle ? (
+                    <div className="flex shrink-0 items-center gap-[4px] font-mono font-semibold text-[12px] leading-[16px] tracking-[0.24px] text-[rgba(255,255,255,0.32)] uppercase">
+                      <p className="w-[8px] shrink-0 text-center">·</p>
+                      <p className="shrink-0 whitespace-pre">{subtitle}</p>
+                    </div>
+                  ) : null}
+                </div>
               </div>
             </div>
 
             {firstLink ? (
               <div
                 ref={mobileLinkRef}
-                className="shrink-0 backdrop-blur-[60px] backdrop-filter bg-[rgba(13,13,13,0.64)] flex items-center px-[12px] py-[10px] pointer-events-auto"
+                className={`relative shrink-0 overflow-hidden ${isMobileOverlayVisible ? 'pointer-events-auto' : 'pointer-events-none'}`}
               >
-                <Link
-                  href={firstLink.url}
-                  onClick={(event) => event.stopPropagation()}
-                  theme="dark"
-                  type="primary"
-                  className="inline-flex items-center"
+                <div
+                  aria-hidden="true"
+                  className={`absolute inset-0 transition-opacity duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none ${isMobileOverlayVisible ? 'opacity-100' : 'opacity-[0.01]'}`}
+                  style={MOBILE_BACKDROP_STYLE}
+                />
+                <div
+                  className={`relative flex items-center px-[12px] py-[10px] transition-opacity duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none ${isMobileOverlayVisible ? 'opacity-100' : 'opacity-0'}`}
                 >
-                  {firstLink.text}
-                </Link>
+                  <Link
+                    href={firstLink.url}
+                    onClick={(event) => event.stopPropagation()}
+                    theme="dark"
+                    type="primary"
+                    className="inline-flex items-center"
+                  >
+                    {firstLink.text}
+                  </Link>
+                </div>
               </div>
-            ) : null}
-          </div>
-
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute left-0 top-0 -z-10 opacity-0 whitespace-pre"
-          >
-            <span
-              ref={titleMeasureRef}
-              className="font-mono font-semibold text-[12px] leading-[16px] tracking-[0.24px] uppercase"
-            >
-              {title}
-            </span>
-            {subtitle ? (
-              <>
-                <span
-                  ref={dividerMeasureRef}
-                  className="px-[4px] font-mono font-semibold text-[12px] leading-[16px] tracking-[0.24px] uppercase"
-                >
-                  ·
-                </span>
-                <span
-                  ref={subtitleMeasureRef}
-                  className="font-mono font-semibold text-[12px] leading-[16px] tracking-[0.24px] uppercase"
-                >
-                  {subtitle}
-                </span>
-              </>
             ) : null}
           </div>
         </>
       )}
+
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute left-0 top-0 -z-10 opacity-0 whitespace-pre"
+      >
+        <span
+          ref={titleMeasureRef}
+          className="font-mono font-semibold text-[12px] leading-[16px] tracking-[0.24px] uppercase"
+        >
+          {title}
+        </span>
+        {subtitle ? (
+          <>
+            <span
+              ref={dividerMeasureRef}
+              className="px-[4px] font-mono font-semibold text-[12px] leading-[16px] tracking-[0.24px] uppercase"
+            >
+              ·
+            </span>
+            <span
+              ref={subtitleMeasureRef}
+              className="font-mono font-semibold text-[12px] leading-[16px] tracking-[0.24px] uppercase"
+            >
+              {subtitle}
+            </span>
+          </>
+        ) : null}
+      </div>
     </div>
   );
 }
@@ -431,7 +470,7 @@ export default function ScrollCards({ className }: ScrollCardsProps) {
 
     const updateActiveCard = () => {
       const viewport = getHostViewport(scrollHost);
-      const anchorY = viewport.top + viewport.height * 0.33;
+      const anchorY = viewport.top + viewport.height * MOBILE_ACTIVE_CARD_ANCHOR_RATIO;
       let nextActiveCardId: string | null = null;
       let nearestDistance = Number.POSITIVE_INFINITY;
 

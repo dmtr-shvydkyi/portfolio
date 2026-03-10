@@ -3,9 +3,7 @@
 import Image from 'next/image';
 import Link from './Link';
 import { useKeyboardSound } from '@/hooks/useKeyboardSound';
-
-const BLUR_DATA_URL =
-  'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjgzIiB2aWV3Qm94PSIwIDAgMjAwIDI4MyI+PHJlY3Qgd2lkdGg9IjIwMCIgaGVpZ2h0PSIyODMiIGZpbGw9IiMyMjIyMjIiLz48L3N2Zz4=';
+import { blurDataMap } from '@/data/blurData';
 
 interface ResumeProps {
   landingMode?: boolean;
@@ -32,18 +30,18 @@ export default function Resume({ landingMode = false }: ResumeProps) {
           href={cvUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="cursor-pointer"
+          className="block w-full cursor-pointer"
           onClick={handleImageClick}
         >
-          <Image 
+          <Image
             src="/image-cv.jpg"
             alt="Resume"
             width={400}
             height={566}
-            className="w-full h-auto"
+            className="h-auto w-full"
             sizes="(max-width: 440px) 100vw, 400px"
             placeholder="blur"
-            blurDataURL={BLUR_DATA_URL}
+            blurDataURL={blurDataMap['/image-cv.jpg']}
           />
         </a>
         <Link 

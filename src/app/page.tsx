@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
 import dynamic from 'next/dynamic';
 import Work from '@/components/Work';
 import About from '@/components/About';
@@ -198,7 +198,7 @@ export default function Home() {
     animationFrameRef.current = requestAnimationFrame(step);
   }, [cancelScrollAnimation, setActiveTab, updateUrlHash]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const container = scrollContainerRef.current;
     if (!container) return;
 
@@ -249,7 +249,7 @@ export default function Home() {
     };
   }, [getActiveTabFromScroll, setActiveTab]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (hasInitializedRef.current || scrollViewportHeight <= 0) return;
 
     const shouldRestoreScroll = sessionStorage.getItem(RESTORE_HOME_SCROLL_KEY) === '1';
@@ -264,18 +264,16 @@ export default function Home() {
     }
 
     if (shouldRestoreScroll && Number.isFinite(storedScrollTop) && storedScrollTop >= 0) {
-      requestAnimationFrame(() => {
-        const container = scrollContainerRef.current;
-        if (!container) return;
+      const container = scrollContainerRef.current;
+      if (!container) return;
 
-        container.scrollTop = storedScrollTop;
-        requestAnimationFrame(() => {
-          container.scrollTop = storedScrollTop;
-          const tabFromScroll = getActiveTabFromScroll(container.scrollTop);
-          setActiveTab(tabFromScroll);
-          updateUrlHash(tabFromScroll, 'replace');
-        });
-      });
+      const maxScrollTop = Math.max(container.scrollHeight - container.clientHeight, 0);
+      const nextScrollTop = Math.min(storedScrollTop, maxScrollTop);
+      container.scrollTop = nextScrollTop;
+
+      const tabFromScroll = getActiveTabFromScroll(container.scrollTop);
+      setActiveTab(tabFromScroll);
+      updateUrlHash(tabFromScroll, 'replace');
 
       hasInitializedRef.current = true;
       return;

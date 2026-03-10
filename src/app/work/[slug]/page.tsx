@@ -46,20 +46,27 @@ function LuminarCasePage({ project }: { project: WorkProject }) {
 
         <div className="content-stretch flex items-end justify-between max-w-[960px] pt-[80px] relative shrink-0 w-full">
           <div className="content-stretch flex flex-[1_0_0] flex-col gap-[10px] items-start justify-end min-h-px min-w-px relative">
-            <Image src={caseStudy.iconSrc} alt="" width={37} height={37} className="size-[37px]" />
+            <Image
+              src={caseStudy.iconSrc}
+              alt=""
+              width={37}
+              height={37}
+              placeholder={blurDataMap[caseStudy.iconSrc] ? 'blur' : 'empty'}
+              blurDataURL={blurDataMap[caseStudy.iconSrc]}
+              className="size-[37px] object-cover"
+            />
             <CaseStudyHeroTitle title={caseStudy.title} />
           </div>
         </div>
 
         <div className="relative aspect-[944/531] shrink-0 w-full bg-[#0f0f0f]">
           <video
-            className="absolute inset-0 max-w-none object-cover size-full"
+            className="absolute inset-0 size-full max-w-none object-cover"
             autoPlay
             loop
             muted
             playsInline
-            preload="metadata"
-            poster={caseStudy.sectionMedia[0]}
+            preload="auto"
           >
             <source src={caseStudy.heroVideoSrc} type="video/mp4" />
           </video>
@@ -117,9 +124,10 @@ function LuminarCasePage({ project }: { project: WorkProject }) {
               alt={`Luminar Collage section ${index + 1}`}
               fill
               sizes="(max-width: 1024px) calc(100vw - 16px), 944px"
-              className="absolute inset-0 max-w-none object-cover size-full"
+              loading="lazy"
               placeholder={blurDataMap[src] ? 'blur' : 'empty'}
               blurDataURL={blurDataMap[src]}
+              className="absolute inset-0 size-full max-w-none object-cover"
             />
           </div>
         ))}
@@ -147,12 +155,12 @@ function LightDepthPlaceholderPage({ project }: { project: WorkProject }) {
         <div className="content-stretch flex flex-col items-start p-[8px] relative shrink-0 w-full">
           <div className="relative aspect-[944/531] w-full bg-[#0f0f0f]">
             <video
-              className="absolute inset-0 max-w-none object-cover size-full"
+              className="absolute inset-0 size-full max-w-none object-cover"
               autoPlay
               loop
               muted
               playsInline
-              preload="metadata"
+              preload="auto"
             >
               <source src={project.mediaSrc} type="video/mp4" />
             </video>

@@ -7,8 +7,8 @@ interface AboutProps {
 
 export default function About({ landingMode = false }: AboutProps) {
   const containerClass = landingMode
-    ? 'box-border content-stretch flex flex-col gap-[8px] grow items-center justify-center min-h-0 min-w-px overflow-x-clip overflow-y-visible p-[8px] relative shrink-0 w-full h-full'
-    : 'basis-0 box-border content-stretch flex flex-col gap-[8px] grow items-center justify-start min-h-px min-w-px overflow-x-clip overflow-y-auto p-[8px] relative shrink-0 w-full';
+    ? 'box-border content-stretch flex flex-col gap-[8px] grow items-center justify-center min-h-0 min-w-px overflow-x-clip overflow-y-visible p-[24px] relative shrink-0 w-full h-full'
+    : 'basis-0 box-border content-stretch flex flex-col gap-[8px] grow items-center justify-start min-h-px min-w-px overflow-x-clip overflow-y-auto p-[24px] relative shrink-0 w-full';
   const contentClass = landingMode
     ? 'content-stretch flex gap-[8px] items-center justify-center max-w-[400px] my-auto relative shrink-0 w-full'
     : 'content-stretch flex gap-[8px] items-center justify-center max-w-[400px] my-auto relative shrink-0 w-full';
@@ -22,10 +22,13 @@ export default function About({ landingMode = false }: AboutProps) {
         >
             <p className="leading-[20px] mb-[8px] text-[12px] normal-case">
               <span>I&apos;m a product designer from Kyiv, Ukraine, currently working at Skylum on </span>
-              <Link type="primary" theme="dark" href="https://skylum.com/uk/luminar" className="inline font-bold" style={{ textTransform: 'none' }}>
-                Luminar Neo
-              </Link>
-              <span>, one of the best desktop photo editing apps on the market.</span>
+              <span className="inline whitespace-nowrap">
+                <Link type="primary" theme="dark" href="https://skylum.com/uk/luminar" className="inline font-bold" style={{ textTransform: 'none' }}>
+                  Luminar Neo
+                </Link>
+                <span>,</span>
+              </span>
+              <span> one of the best desktop photo editing apps on the market.</span>
             </p>
           <p className="leading-[20px] mb-[8px] text-[12px] normal-case">
             <span>Before that, I designed complex SaaS products at </span>
@@ -45,10 +48,13 @@ export default function About({ landingMode = false }: AboutProps) {
           </p>
             <p className="leading-[20px] text-[12px] normal-case">
               <span>When I&apos;m not pixel-pushing, I&apos;m usually spending time with my family, watching series and movies, diving into new tech, </span>
-              <Link type="primary" theme="dark" href="https://www.instagram.com/shvydkyi_" className="inline font-bold" style={{ textTransform: 'none' }}>
-                shooting photos
-              </Link>
-              <span>, or driving my EV. There&apos;s just something about this battery-powered toaster on wheels that I love.</span>
+              <span className="inline whitespace-nowrap">
+                <Link type="primary" theme="dark" href="https://www.instagram.com/shvydkyi_" className="inline font-bold" style={{ textTransform: 'none' }}>
+                  shooting photos
+                </Link>
+                <span>,</span>
+              </span>
+              <span> or driving my EV. There&apos;s just something about this battery-powered toaster on wheels that I love.</span>
             </p>
         </GlitchScramble>
       </div>

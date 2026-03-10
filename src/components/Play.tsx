@@ -565,7 +565,7 @@ export default function Play({ landingMode = false }: PlayProps) {
   }, [gameState, speed, updateGame]);
 
   const requestDirectionChange = useCallback((newDirection: Direction) => {
-    if (gameState !== 'playing') return;
+    if (gameState !== 'playing') return false;
     const currentDirection = direction;
     const isOpposite =
       (currentDirection === 'up' && newDirection === 'down') ||
@@ -575,13 +575,19 @@ export default function Play({ landingMode = false }: PlayProps) {
     
     if (!isOpposite && newDirection !== currentDirection) {
       nextDirectionRef.current = newDirection;
+      return true;
     }
+
+    return false;
   }, [direction, gameState]);
 
   const handleMobileControlPress = useCallback((newDirection: Direction) => {
     setActiveMobileDirection(newDirection);
-    requestDirectionChange(newDirection);
-  }, [requestDirectionChange]);
+    const didQueueDirectionChange = requestDirectionChange(newDirection);
+    if (didQueueDirectionChange) {
+      playSound();
+    }
+  }, [playSound, requestDirectionChange]);
 
   const clearMobileControlPress = useCallback(() => {
     setActiveMobileDirection(null);

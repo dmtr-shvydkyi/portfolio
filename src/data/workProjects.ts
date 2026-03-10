@@ -22,6 +22,7 @@ export interface WorkProjectCaseStudy {
   title: string;
   iconSrc: string;
   heroVideoSrc: string;
+  heroPosterSrc?: string;
   topLinks: WorkProjectLink[];
   details: WorkProjectCaseStudyDetail[];
   sections: WorkProjectCaseStudySection[];
@@ -33,6 +34,7 @@ export interface WorkProject {
   title: string;
   subtitle?: string;
   mediaSrc: string;
+  posterSrc?: string;
   links?: WorkProjectLink[];
   interaction: WorkProjectInteraction;
   hoverDisabled?: boolean;
@@ -44,6 +46,7 @@ const luminarCollageCaseStudy: WorkProjectCaseStudy = {
   title: 'Luminar Collage',
   iconSrc: '/case-studies/luminar-collage/collage-icon.png',
   heroVideoSrc: '/collage-onboarding-p.mp4',
+  heroPosterSrc: '/case-studies/luminar-collage/section-1.jpg',
   topLinks: [
     { text: 'Jitter', url: 'https://jitter.video/file/?id=9BLlSYNaJvuDBolLxiBV6' },
     { text: 'App Store', url: 'https://apps.apple.com/ua/app/luminar-collage-photo-maker/id6743317674' }
@@ -90,6 +93,7 @@ export const workProjects: WorkProject[] = [
     title: 'Luminar Collage',
     subtitle: 'Case Study',
     mediaSrc: '/collage-onboarding-p.mp4',
+    posterSrc: '/collage-1-min.jpg',
     interaction: 'route',
     slug: 'luminar-collage',
     caseStudy: luminarCollageCaseStudy
@@ -99,6 +103,7 @@ export const workProjects: WorkProject[] = [
     title: 'Light Depth',
     subtitle: 'Feature',
     mediaSrc: '/light-depth.mp4',
+    posterSrc: '/light-depth-poster.jpg',
     links: [
       {
         text: 'Watch',
@@ -113,6 +118,7 @@ export const workProjects: WorkProject[] = [
     title: 'AI Bookshelf',
     subtitle: 'Concept',
     mediaSrc: '/bookshelf-video.mp4',
+    posterSrc: '/bookshelf-ai-min.jpg',
     links: [
       {
         text: 'Prototype',

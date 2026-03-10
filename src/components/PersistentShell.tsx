@@ -70,7 +70,7 @@ export default function PersistentShell({ children }: PersistentShellProps) {
   }, [loadingPhase]);
 
   return (
-    <div className="bg-white content-stretch flex flex-col items-start relative size-full md:grid md:grid-cols-[repeat(4,_minmax(0px,_1fr))]">
+    <div className="app-shell bg-white content-stretch flex flex-col items-start relative w-full md:grid md:grid-cols-[repeat(4,_minmax(0px,_1fr))]">
       {/* Sidebar */}
       <div
         data-sidebar
@@ -104,12 +104,12 @@ export default function PersistentShell({ children }: PersistentShellProps) {
 
       {/* Content area */}
       <div
-        className="basis-0 bg-[#0d0d0d] content-stretch flex flex-col grow items-center min-h-px min-w-px overflow-clip relative shrink-0 w-full md:[grid-area:1_/_2_/_auto_/_span_3] md:h-screen min-h-screen md:min-h-px"
+        className="basis-0 bg-[#0d0d0d] content-stretch flex flex-col grow items-center min-h-0 min-w-px overflow-clip relative shrink-0 w-full md:[grid-area:1_/_2_/_auto_/_span_3] md:h-screen md:min-h-px"
       >
         <div data-content-area className={contentContainerClassName}>
           {children}
         </div>
-        <div className="box-border content-stretch flex h-[36px] items-end justify-between p-[8px] relative shrink-0 w-full">
+        <div className="app-shell-bottom-bar content-stretch flex items-end justify-between relative shrink-0 w-full">
           <TabsNavigation
             selected={activeTab}
             className="content-stretch flex gap-[8px] items-center relative shrink-0"
