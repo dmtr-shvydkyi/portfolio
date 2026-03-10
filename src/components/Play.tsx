@@ -141,6 +141,7 @@ export default function Play({ landingMode = false }: PlayProps) {
   const [isGameOverVisible, setIsGameOverVisible] = useState(false);
   const [pressedKey, setPressedKey] = useState<string | null>(null);
   const [isMobileControls, setIsMobileControls] = useState(false);
+  const [activeMobileDirection, setActiveMobileDirection] = useState<Direction | null>(null);
   const [, setLeaderboardEntries] = useState<LeaderboardEntry[]>([]);
   const [leaderboardNick, setLeaderboardNick] = useState<string | null>(null);
   
