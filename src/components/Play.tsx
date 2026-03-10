@@ -34,6 +34,64 @@ const LEADERBOARD_LIMIT = 5;
 const LEADERBOARD_COOKIE = 'snake_nick';
 const LEADERBOARD_API = '/api/snake/leaderboard';
 const NICKNAME_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+const MOBILE_JOYSTICK_SIZE = 220;
+const MOBILE_JOYSTICK_BUTTON_SIZE = 56;
+
+const MOBILE_JOYSTICK_BUTTONS: Array<{
+  direction: Direction;
+  label: string;
+  buttonStyle: CSSProperties;
+  arrowStyle: CSSProperties;
+}> = [
+  {
+    direction: 'up',
+    label: 'Up',
+    buttonStyle: {
+      top: 10,
+      left: '50%',
+      transform: 'translateX(-50%)',
+    },
+    arrowStyle: {
+      transform: 'rotate(0deg)',
+    },
+  },
+  {
+    direction: 'right',
+    label: 'Right',
+    buttonStyle: {
+      top: '50%',
+      right: 10,
+      transform: 'translateY(-50%)',
+    },
+    arrowStyle: {
+      transform: 'rotate(90deg)',
+    },
+  },
+  {
+    direction: 'down',
+    label: 'Down',
+    buttonStyle: {
+      bottom: 10,
+      left: '50%',
+      transform: 'translateX(-50%)',
+    },
+    arrowStyle: {
+      transform: 'rotate(180deg)',
+    },
+  },
+  {
+    direction: 'left',
+    label: 'Left',
+    buttonStyle: {
+      top: '50%',
+      left: 10,
+      transform: 'translateY(-50%)',
+    },
+    arrowStyle: {
+      transform: 'rotate(-90deg)',
+    },
+  },
+];
 
 const readCookie = (name: string) => {
   if (typeof document === 'undefined') return null;
@@ -61,7 +119,11 @@ const generateNickname = () => {
   return `${randomBlock()}.${randomBlock()}.${randomBlock()}.${suffix}`;
 };
 
-export default function Play() {
+interface PlayProps {
+  landingMode?: boolean;
+}
+
+export default function Play({ landingMode = false }: PlayProps) {
   const [gameState, setGameState] = useState<GameState>('idle');
   const [actualCellSize, setActualCellSize] = useState(BASE_CELL_SIZE);
   const [boardSize, setBoardSize] = useState(GRID_SIZE * BASE_CELL_SIZE);
@@ -507,7 +569,7 @@ export default function Play() {
   }, [gameState, speed, updateGame]);
 
   const requestDirectionChange = useCallback((newDirection: Direction) => {
-    if (gameState !== 'playing') return;
+    if (gameState !== 'playing') return false;
     const currentDirection = direction;
     const isOpposite =
       (currentDirection === 'up' && newDirection === 'down') ||
@@ -517,8 +579,23 @@ export default function Play() {
     
     if (!isOpposite && newDirection !== currentDirection) {
       nextDirectionRef.current = newDirection;
+      return true;
     }
+
+    return false;
   }, [direction, gameState]);
+
+  const handleMobileControlPress = useCallback((newDirection: Direction) => {
+    setActiveMobileDirection(newDirection);
+    const didQueueDirectionChange = requestDirectionChange(newDirection);
+    if (didQueueDirectionChange) {
+      playSound();
+    }
+  }, [playSound, requestDirectionChange]);
+
+  const clearMobileControlPress = useCallback(() => {
+    setActiveMobileDirection(null);
+  }, []);
 
   // Handle keyboard input for game controls
   useEffect(() => {
@@ -724,8 +801,18 @@ export default function Play() {
   };
 
   const finalBestScore = isNewBestScore ? score : bestScore;
+  const idleContainerClass = landingMode
+    ? 'box-border content-stretch flex flex-col gap-0 grow items-center justify-center min-h-0 min-w-px overflow-hidden p-[8px] relative shrink-0 w-full h-full'
+    : 'basis-0 box-border content-stretch flex flex-col gap-0 grow items-center justify-start min-h-px min-w-px overflow-x-clip overflow-y-auto p-[8px] relative shrink-0 w-full';
+  const gameOverContainerClass = landingMode
+    ? 'box-border content-stretch flex flex-col gap-[8px] grow items-center justify-center min-h-0 min-w-px overflow-hidden p-[8px] relative shrink-0 w-full h-full transition-opacity'
+    : 'basis-0 box-border content-stretch flex flex-col gap-[8px] grow items-center justify-start min-h-px min-w-px overflow-x-clip overflow-y-auto p-[8px] relative shrink-0 w-full transition-opacity';
+  const introStackClass = landingMode
+    ? 'content-stretch flex flex-col gap-[32px] items-center justify-center max-w-[400px] mt-[8px] relative shrink-0 w-full'
+    : 'content-stretch flex flex-col gap-[32px] items-center justify-center max-w-[400px] my-auto relative shrink-0 w-full';
+
   const gameOverContent = (
-    <div className="content-stretch flex flex-col gap-[32px] items-center justify-center max-w-[400px] my-auto relative shrink-0 w-full">
+    <div className={introStackClass}>
       <div className="content-stretch flex flex-col items-center justify-center relative shrink-0 w-full">
         <div className="content-stretch flex flex-col font-mono font-semibold gap-[8px] items-center relative shrink-0 uppercase w-full">
           {!isNewBestScore && (
@@ -770,8 +857,8 @@ export default function Play() {
   // Idle state (empty state)
   if (gameState === 'idle') {
     return (
-      <div className="basis-0 box-border content-stretch flex flex-col gap-0 grow items-center justify-start min-h-px min-w-px overflow-x-clip overflow-y-auto p-[8px] relative shrink-0 w-full">
-        <div className="content-stretch flex flex-col gap-[32px] items-center justify-center max-w-[400px] my-auto relative shrink-0 w-full">
+      <div className={idleContainerClass}>
+        <div className={introStackClass}>
           <div className="content-stretch flex flex-col items-center justify-center relative shrink-0 w-full">
             <div className="content-stretch flex flex-col font-mono font-semibold gap-[8px] items-center relative shrink-0 uppercase w-full">
               <div className="content-stretch flex gap-[8px] items-start justify-center leading-[16px] relative shrink-0 text-[12px] text-[rgba(255,255,255,0.4)] text-nowrap tracking-[0.24px] whitespace-pre">
@@ -816,6 +903,12 @@ export default function Play() {
     const crossInsetX = Math.round(actualCellSize * 0.2);
     const crossInsetY = Math.round(actualCellSize * 0.24);
     const boardOuter = boardSize + BOARD_BORDER_PX * 2;
+    const joystickShellTransform =
+      activeMobileDirection === 'left' ? 'rotateY(-18deg) rotateX(1deg) scale3d(0.996, 0.996, 1)' :
+      activeMobileDirection === 'right' ? 'rotateY(18deg) rotateX(1deg) scale3d(0.996, 0.996, 1)' :
+      activeMobileDirection === 'up' ? 'rotateX(16deg) scale3d(0.996, 0.996, 1)' :
+      activeMobileDirection === 'down' ? 'rotateX(-16deg) scale3d(0.996, 0.996, 1)' :
+      'rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)';
     
     return (
       <div
@@ -827,10 +920,10 @@ export default function Play() {
       >
         <div
           ref={playAreaRef}
-          className="content-stretch flex flex-col gap-[8px] items-center justify-start md:justify-center max-w-[400px] relative shrink-0 w-full h-full min-h-0"
+          className="content-stretch flex flex-col gap-[8px] items-center justify-center max-w-[400px] relative shrink-0 w-full h-full min-h-0"
         >
           <div
-            className="content-stretch flex flex-col gap-[8px] items-center justify-start md:justify-center relative shrink-0 mx-auto"
+            className="content-stretch flex flex-col gap-[8px] items-center justify-center relative shrink-0 mx-auto"
             style={{
               width: `${boardOuter}px`,
               maxWidth: '100%',
@@ -1053,37 +1146,112 @@ export default function Play() {
           {isMobileControls && (
             <div
               ref={dpadRef}
-              className="content-stretch grid grid-cols-3 grid-rows-3 gap-[6px] items-center justify-center max-w-[200px] w-full"
+              className="relative mx-auto mt-[8px] w-full max-w-[220px] select-none"
+              style={{
+                height: `${MOBILE_JOYSTICK_SIZE}px`,
+              }}
             >
-              <div />
-              <button
-                type="button"
-                aria-label="Up"
-                className="bg-[rgba(255,255,255,0.08)] border border-[rgba(255,255,255,0.08)] rounded-none appearance-none h-[36px] w-full active:scale-95 transition"
-                onClick={() => requestDirectionChange('up')}
-              />
-              <div />
-              <button
-                type="button"
-                aria-label="Left"
-                className="bg-[rgba(255,255,255,0.08)] border border-[rgba(255,255,255,0.08)] rounded-none appearance-none h-[36px] w-full active:scale-95 transition"
-                onClick={() => requestDirectionChange('left')}
-              />
-              <div />
-              <button
-                type="button"
-                aria-label="Right"
-                className="bg-[rgba(255,255,255,0.08)] border border-[rgba(255,255,255,0.08)] rounded-none appearance-none h-[36px] w-full active:scale-95 transition"
-                onClick={() => requestDirectionChange('right')}
-              />
-              <div />
-              <button
-                type="button"
-                aria-label="Down"
-                className="bg-[rgba(255,255,255,0.08)] border border-[rgba(255,255,255,0.08)] rounded-none appearance-none h-[36px] w-full active:scale-95 transition"
-                onClick={() => requestDirectionChange('down')}
-              />
-              <div />
+              <div
+                className="absolute inset-0 motion-reduce:transition-none"
+                style={{
+                  perspective: '880px',
+                }}
+              >
+                <div
+                  className="pointer-events-none absolute inset-0 rounded-full motion-reduce:transition-none"
+                  data-joystick-shell
+                  style={{
+                    background: 'rgba(255,255,255,0.02)',
+                    border: '1px solid rgba(255,255,255,0.04)',
+                    boxShadow: 'none',
+                    transform: joystickShellTransform,
+                    transformOrigin: '50% 50%',
+                    transformStyle: 'preserve-3d',
+                    transition: 'transform 160ms cubic-bezier(0.32, 0.72, 0, 1)',
+                    willChange: 'transform',
+                  }}
+                >
+                  <svg
+                    aria-hidden="true"
+                    className="absolute inset-0 h-full w-full"
+                    viewBox="0 0 220 220"
+                    fill="none"
+                  >
+                    <circle cx="110" cy="110" r="109.5" stroke="rgba(255,255,255,0.02)" />
+                    <line x1="71" y1="71" x2="98" y2="98" stroke="rgba(255,255,255,0.05)" />
+                    <line x1="122" y1="122" x2="149" y2="149" stroke="rgba(255,255,255,0.05)" />
+                    <line x1="71" y1="149" x2="98" y2="122" stroke="rgba(255,255,255,0.05)" />
+                    <line x1="122" y1="98" x2="149" y2="71" stroke="rgba(255,255,255,0.05)" />
+                  </svg>
+                  {MOBILE_JOYSTICK_BUTTONS.map(control => {
+                    const isActive = activeMobileDirection === control.direction;
+
+                    return (
+                      <span
+                        key={`${control.direction}-visual`}
+                        className="absolute flex items-center justify-center"
+                        style={{
+                          ...control.buttonStyle,
+                          width: `${MOBILE_JOYSTICK_BUTTON_SIZE}px`,
+                          height: `${MOBILE_JOYSTICK_BUTTON_SIZE}px`,
+                        }}
+                      >
+                        <span
+                          className="flex h-[24px] w-[24px] items-center justify-center motion-reduce:transition-none"
+                          style={control.arrowStyle}
+                        >
+                          <svg
+                            aria-hidden="true"
+                            width="14"
+                            height="12"
+                            viewBox="0 0 14 12"
+                            fill="none"
+                            data-joystick-arrow={control.direction}
+                            className="motion-reduce:transition-none"
+                            style={{
+                              filter: isActive ? 'drop-shadow(0 0 4px rgba(255,255,255,0.12))' : 'none',
+                              opacity: isActive ? 1 : 0.92,
+                              transform: isActive ? 'scale(1.1)' : 'scale(1)',
+                              transition: 'transform 160ms cubic-bezier(0.32, 0.72, 0, 1), filter 160ms cubic-bezier(0.32, 0.72, 0, 1), opacity 160ms ease-out',
+                            }}
+                          >
+                            <path
+                              d="M7 0L14 12H0L7 0Z"
+                              fill={isActive ? '#FFFFFF' : 'rgba(255,255,255,0.18)'}
+                            />
+                          </svg>
+                        </span>
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+              {MOBILE_JOYSTICK_BUTTONS.map(control => {
+                const isActive = activeMobileDirection === control.direction;
+
+                return (
+                  <button
+                    key={control.direction}
+                    type="button"
+                    aria-label={control.label}
+                    aria-pressed={isActive}
+                    className="absolute flex items-center justify-center rounded-full appearance-none border-0 bg-transparent p-0 motion-reduce:transition-none"
+                    style={{
+                      ...control.buttonStyle,
+                      width: `${MOBILE_JOYSTICK_BUTTON_SIZE}px`,
+                      height: `${MOBILE_JOYSTICK_BUTTON_SIZE}px`,
+                      touchAction: 'manipulation',
+                    }}
+                    onPointerDown={event => {
+                      event.preventDefault();
+                      handleMobileControlPress(control.direction);
+                    }}
+                    onPointerUp={clearMobileControlPress}
+                    onPointerCancel={clearMobileControlPress}
+                    onPointerLeave={clearMobileControlPress}
+                  />
+                );
+              })}
             </div>
           )}
           </div>
@@ -1095,7 +1263,7 @@ export default function Play() {
   // Game over state
   return (
     <div
-      className="basis-0 box-border content-stretch flex flex-col gap-[8px] grow items-center justify-start min-h-px min-w-px overflow-x-clip overflow-y-auto p-[8px] relative shrink-0 w-full transition-opacity"
+      className={gameOverContainerClass}
       style={{
         opacity: isGameOverVisible ? 1 : 0,
         transitionDuration: `${FADE_DURATION_MS}ms`,

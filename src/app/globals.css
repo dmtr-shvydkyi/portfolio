@@ -1,41 +1,189 @@
-@import url('https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;600;700&display=swap');
 @import "tailwindcss";
+@source "./styleguide/**";
 
 :root {
-  --background: #ffffff;
+  --background: #0d0d0d;
   --foreground: #171717;
+  --landing-scroll-duration: 620ms;
+  --route-transition-exit-duration: 160ms;
+  --route-transition-enter-duration: 160ms;
+  --route-transition-exit-easing: cubic-bezier(0.16, 1, 0.3, 1);
+  --route-transition-enter-easing: cubic-bezier(0.16, 1, 0.3, 1);
+  --app-viewport-height: 100vh;
+  --safe-area-top: env(safe-area-inset-top, 0px);
+  --safe-area-right: env(safe-area-inset-right, 0px);
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-left: env(safe-area-inset-left, 0px);
+  --shell-edge-gap: 8px;
+  --shell-bottom-padding: calc(var(--shell-edge-gap) + var(--safe-area-bottom));
+}
+
+@supports (height: 100svh) {
+  :root {
+    --app-viewport-height: 100svh;
+  }
+}
+
+@supports (height: 100dvh) {
+  :root {
+    --app-viewport-height: 100dvh;
+  }
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: 'Geist Mono', monospace;
-  --font-mono: 'Geist Mono', monospace;
+  --font-sans: var(--font-geist-mono), monospace;
+  --font-mono: var(--font-geist-mono), monospace;
 }
 
 body {
-  background: var(--background);
+  background: #0d0d0d;
   color: var(--foreground);
-  font-family: 'Geist Mono', monospace;
+  font-family: var(--font-geist-mono), monospace;
   margin: 0;
   padding: 0;
-  height: 100vh;
+  min-height: var(--app-viewport-height);
+  height: var(--app-viewport-height);
   overflow: hidden;
 }
 
 html,
 body,
 #__next {
+  min-height: 100%;
   height: 100%;
   width: 100%;
 }
 
-/* Ensure Geist Mono is used throughout */
-* {
-  font-family: 'Geist Mono', monospace;
+.app-shell {
+  min-height: var(--app-viewport-height);
+  height: var(--app-viewport-height);
 }
 
-/* Horizontal scrolling animation */
+.app-shell-bottom-bar {
+  box-sizing: border-box;
+  min-height: calc(36px + var(--safe-area-bottom));
+  padding-top: var(--shell-edge-gap);
+  padding-right: calc(var(--shell-edge-gap) + var(--safe-area-right));
+  padding-bottom: var(--shell-bottom-padding);
+  padding-left: calc(var(--shell-edge-gap) + var(--safe-area-left));
+}
+
+@media (min-width: 768px) {
+  .app-shell {
+    min-height: 100vh;
+    height: 100vh;
+  }
+
+  .app-shell-bottom-bar {
+    min-height: 36px;
+    padding: var(--shell-edge-gap);
+  }
+}
+
+/* ─── Landing scroll system ─── */
+
+.landing-scroll-container {
+  --landing-scroll-viewport: 0px;
+  --landing-fit-height: var(--landing-scroll-viewport);
+}
+
+.landing-fit-section {
+  height: var(--landing-fit-height);
+  min-height: var(--landing-fit-height);
+  max-height: var(--landing-fit-height);
+  box-sizing: border-box;
+  padding-top: 0;
+  padding-bottom: 8px;
+  overflow: hidden;
+}
+
+/* ─── View Transitions (page navigation) ─── */
+
+[data-content-area] {
+  view-transition-name: content-area;
+  backface-visibility: hidden;
+  transition-property: opacity;
+  transition-duration: var(--route-transition-enter-duration);
+  transition-timing-function: var(--route-transition-enter-easing);
+}
+
+@keyframes vt-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes vt-fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+/* Route transitions use opacity-only to avoid transform/video glitches. */
+::view-transition-old(content-area) {
+  animation: vt-fade-out var(--route-transition-exit-duration) var(--route-transition-exit-easing) forwards;
+}
+
+::view-transition-new(content-area) {
+  animation: vt-fade-in var(--route-transition-enter-duration) var(--route-transition-enter-easing) both;
+}
+
+[data-transition-direction="back"]::view-transition-old(content-area) {
+  animation: vt-fade-out var(--route-transition-exit-duration) var(--route-transition-exit-easing) forwards;
+}
+
+[data-transition-direction="back"]::view-transition-new(content-area) {
+  animation: vt-fade-in var(--route-transition-enter-duration) var(--route-transition-enter-easing) both;
+}
+
+[data-transition-profile="safari-safe"]::view-transition-old(content-area) {
+  animation: vt-fade-out var(--route-transition-exit-duration) var(--route-transition-exit-easing) forwards;
+}
+
+[data-transition-profile="safari-safe"]::view-transition-new(content-area) {
+  animation: vt-fade-in var(--route-transition-enter-duration) var(--route-transition-enter-easing) both;
+}
+
+[data-transition-stage="leaving"] [data-content-area] {
+  transition-duration: var(--route-transition-exit-duration);
+  transition-timing-function: var(--route-transition-exit-easing);
+  opacity: 0;
+}
+
+[data-transition-stage="between"] [data-content-area],
+[data-transition-stage="entering"] [data-content-area] {
+  opacity: 0;
+}
+
+/* ─── Scroll reveal ─── */
+
+.reveal-up {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.reveal-up.revealed {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 500ms cubic-bezier(0.16, 1, 0.3, 1),
+              transform 500ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Stagger children */
+.reveal-up.revealed > .reveal-child:nth-child(1) { transition-delay: 0ms; }
+.reveal-up.revealed > .reveal-child:nth-child(2) { transition-delay: 60ms; }
+.reveal-up.revealed > .reveal-child:nth-child(3) { transition-delay: 120ms; }
+.reveal-up.revealed > .reveal-child:nth-child(4) { transition-delay: 180ms; }
+.reveal-up.revealed > .reveal-child:nth-child(5) { transition-delay: 240ms; }
+
+/* ─── Horizontal scrolling animation ─── */
+
 @keyframes infiniteScroll {
   from {
     transform: translate3d(0, 0, 0);
@@ -58,17 +206,9 @@ body,
   height: 100%;
 }
 
-
-@media (prefers-reduced-motion: reduce) {
-  .horizontal-scrolling-items {
-    animation: none;
-    transform: translate3d(0, 0, 0);
-  }
-}
-
 .horizontal-scrolling-items__item {
   white-space: nowrap;
-  font-family: 'Geist Mono', monospace;
+  font-family: var(--font-geist-mono), monospace;
   font-weight: 600;
   line-height: 16px;
   color: white;
@@ -77,6 +217,8 @@ body,
   flex-shrink: 0;
   padding-left: 1ch;
 }
+
+/* ─── Snake game animations ─── */
 
 @keyframes snakeCrumble {
   from {
@@ -143,9 +285,31 @@ body,
   animation: glitch 0.4s ease-in-out;
 }
 
+/* ─── Reduced motion ─── */
+
 @media (prefers-reduced-motion: reduce) {
+  .horizontal-scrolling-items {
+    animation: none;
+    transform: translate3d(0, 0, 0);
+  }
+
   .animate-snake-crumble {
     animation-duration: 1ms;
     animation-delay: 0ms;
+  }
+
+  ::view-transition-old(content-area),
+  ::view-transition-new(content-area) {
+    animation-duration: 0ms !important;
+    animation-delay: 0ms !important;
+  }
+
+  [data-content-area] {
+    transition: none !important;
+  }
+
+  .reveal-up {
+    opacity: 1;
+    transform: none;
   }
 }

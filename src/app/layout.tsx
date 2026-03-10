@@ -1,13 +1,8 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import { Analytics } from "@vercel/analytics/react";
-import { SpeedInsights } from "@vercel/speed-insights/next";
+import type { Metadata, Viewport } from "next";
+import { Geist_Mono } from "next/font/google";
+import { NavigationProvider } from "@/components/NavigationContext";
+import PersistentShell from "@/components/PersistentShell";
 import "./globals.css";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
@@ -18,10 +13,6 @@ export const metadata: Metadata = {
   metadataBase: new URL('https://shvydkyi.me'),
   title: "Dmytro Shvydkyi",
   description: "Product Designer based in Kyiv, Ukraine",
-  // Let App Router file-based metadata handle icons placed in `src/app`:
-  // - `src/app/favicon.ico`
-  // - `src/app/apple-icon.png`
-  // - optional: `src/app/icon.png` or `src/app/icon.svg`
   manifest: '/manifest.json',
   openGraph: {
     title: "Dmytro Shvydkyi",
@@ -48,6 +39,12 @@ export const metadata: Metadata = {
   },
 };
 
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -56,11 +53,13 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistMono.variable} antialiased`}
       >
-        {children}
-        <Analytics />
-        <SpeedInsights />
+        <NavigationProvider>
+          <PersistentShell>
+            {children}
+          </PersistentShell>
+        </NavigationProvider>
       </body>
     </html>
   );

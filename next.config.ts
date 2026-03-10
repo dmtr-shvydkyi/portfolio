@@ -1,7 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // No rewrites needed when a real `/public/favicon.ico` exists
+  distDir: process.env.NODE_ENV === 'development' ? '.next-dev' : '.next',
+  images: {
+    formats: ["image/avif", "image/webp"],
+  },
   turbopack: {
     root: process.cwd(),
   },
