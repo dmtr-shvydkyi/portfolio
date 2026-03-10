@@ -58,11 +58,8 @@ export default function SharedLayout({
           <LogoMain className="overflow-clip relative shrink-0 size-[32px]" onClick={handleLogoClick} />
           <div className="content-stretch flex flex-col gap-[8px] items-start relative shrink-0 w-full">
             <p className="font-mono font-bold leading-[26px] min-w-full relative shrink-0 text-[#0d0d0d] text-[20px] md:text-[0px] md:text-[22px] uppercase w-[min-content]">
-              <span>
-                Dmytro Shvydkyi
-                <br aria-hidden="true" />
-              </span>
-              <span className="text-[rgba(13,13,13,0.32)] font-mono font-bold text-[22px]">Product Designer</span>
+              <span>Dmytro Shvydkyi<br aria-hidden="true"/></span>
+              <span className="text-[rgba(13,13,13,0.32)] font-mono font-bold text-[20px] md:text-[22px]">Product Designer</span>
             </p>
             <div className="content-stretch flex gap-[6px] items-start relative shrink-0">
               <p className="font-mono font-semibold leading-[16px] relative shrink-0 text-[12px] text-[rgba(13,13,13,0.32)] text-nowrap tracking-[0.24px] uppercase whitespace-pre">
@@ -104,3 +101,4 @@ export default function SharedLayout({
     </div>
   );
 }
+
