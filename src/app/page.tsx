@@ -2,10 +2,10 @@
 
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
 import dynamic from 'next/dynamic';
-import SharedLayout from '@/components/SharedLayout';
 import Work from '@/components/Work';
 import About from '@/components/About';
 import Resume from '@/components/Resume';
+import { useNavigation } from '@/components/NavigationContext';
 import { useKeyboardSound } from '@/hooks/useKeyboardSound';
 import { hashToTabId, isTabId, tabIdToHash, type TabId } from '@/types/tabs';
 
@@ -15,26 +15,35 @@ const Play = dynamic(() => import('@/components/Play'), {
 });
 
 const TAB_ORDER: TabId[] = ['work', 'info', 'play', 'resume'];
+const HOME_SCROLL_TOP_KEY = 'portfolio-home-scroll-top';
+const RESTORE_HOME_SCROLL_KEY = 'portfolio-restore-home-scroll';
+const TARGET_HOME_TAB_KEY = 'portfolio-home-target-tab';
+
+/** Spring-like ease-out with subtle overshoot for organic scroll feel */
+function springEaseOut(t: number): number {
+  const decay = Math.exp(-5.5 * t);
+  return 1 - decay * Math.cos(Math.PI * 0.45 * t);
+}
 
 function getScrollDurationMs() {
-  if (typeof window === 'undefined') return 560;
+  if (typeof window === 'undefined') return 620;
   const rawValue = window
     .getComputedStyle(document.documentElement)
     .getPropertyValue('--landing-scroll-duration')
     .trim();
 
-  if (!rawValue) return 560;
+  if (!rawValue) return 620;
   if (rawValue.endsWith('ms')) {
     const parsed = Number.parseFloat(rawValue.slice(0, -2));
-    return Number.isFinite(parsed) ? parsed : 560;
+    return Number.isFinite(parsed) ? parsed : 620;
   }
   if (rawValue.endsWith('s')) {
     const parsed = Number.parseFloat(rawValue.slice(0, -1));
-    return Number.isFinite(parsed) ? parsed * 1000 : 560;
+    return Number.isFinite(parsed) ? parsed * 1000 : 620;
   }
 
   const parsed = Number.parseFloat(rawValue);
-  return Number.isFinite(parsed) ? parsed : 560;
+  return Number.isFinite(parsed) ? parsed : 620;
 }
 
 function getTabFromLocation(): TabId {
@@ -63,9 +72,7 @@ function SectionDivider({ title }: { title: string }) {
 }
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<TabId>('work');
-  const [connectToggleTrigger, setConnectToggleTrigger] = useState(0);
-  const [isLoaded, setIsLoaded] = useState(false);
+  const { activeTab, setActiveTab, triggerConnectToggle, setOnTabChange } = useNavigation();
   const [scrollViewportHeight, setScrollViewportHeight] = useState(0);
   const playSound = useKeyboardSound();
 
@@ -82,10 +89,6 @@ export default function Home() {
     resume: null,
   });
 
-  const setActiveTabIfChanged = useCallback((tab: TabId) => {
-    setActiveTab(prev => (prev === tab ? prev : tab));
-  }, []);
-
   useEffect(() => {
     activeTabRef.current = activeTab;
   }, [activeTab]);
@@ -101,10 +104,6 @@ export default function Home() {
     return () => mediaQuery.removeEventListener('change', updateReducedMotion);
   }, []);
 
-  useEffect(() => {
-    setIsLoaded(true);
-  }, []);
-
   const cancelScrollAnimation = useCallback(() => {
     if (animationFrameRef.current !== null) {
       cancelAnimationFrame(animationFrameRef.current);
@@ -117,7 +116,7 @@ export default function Home() {
     const container = scrollContainerRef.current;
     if (!container) return activeTabRef.current;
 
-    const switchOffset = Math.min(Math.max(container.clientHeight * 0.2, 72), 160);
+    const switchOffset = 8;
     const anchor = scrollTop + switchOffset;
     let activeFromTop: TabId = TAB_ORDER[0];
 
@@ -168,7 +167,7 @@ export default function Home() {
       updateUrlHash(tab, historyMode);
     }
 
-    setActiveTabIfChanged(tab);
+    setActiveTab(tab);
     cancelScrollAnimation();
 
     if (!animated || prefersReducedMotion || Math.abs(delta) < 1) {
@@ -183,7 +182,7 @@ export default function Home() {
     const step = (now: number) => {
       const elapsed = now - startTime;
       const progress = Math.min(elapsed / durationMs, 1);
-      const eased = 1 - (1 - progress) ** 3;
+      const eased = springEaseOut(progress);
       container.scrollTop = startTop + delta * eased;
 
       if (progress < 1) {
@@ -197,7 +196,7 @@ export default function Home() {
     };
 
     animationFrameRef.current = requestAnimationFrame(step);
-  }, [cancelScrollAnimation, setActiveTabIfChanged, updateUrlHash]);
+  }, [cancelScrollAnimation, setActiveTab, updateUrlHash]);
 
   useEffect(() => {
     const container = scrollContainerRef.current;
@@ -207,7 +206,7 @@ export default function Home() {
       setScrollViewportHeight(container.clientHeight);
       const nextTab = getActiveTabFromScroll(container.scrollTop);
       if (nextTab !== activeTabRef.current) {
-        setActiveTabIfChanged(nextTab);
+        setActiveTab(nextTab);
       }
     };
 
@@ -230,7 +229,7 @@ export default function Home() {
 
         const nextTab = getActiveTabFromScroll(container.scrollTop);
         if (nextTab !== activeTabRef.current) {
-          setActiveTabIfChanged(nextTab);
+          setActiveTab(nextTab);
         }
       });
     };
@@ -248,29 +247,61 @@ export default function Home() {
         window.removeEventListener('resize', updateHeight);
       }
     };
-  }, [getActiveTabFromScroll, setActiveTabIfChanged]);
+  }, [getActiveTabFromScroll, setActiveTab]);
 
   useEffect(() => {
     if (hasInitializedRef.current || scrollViewportHeight <= 0) return;
 
-    const initialTab = getTabFromLocation();
-    setActiveTabIfChanged(initialTab);
+    const shouldRestoreScroll = sessionStorage.getItem(RESTORE_HOME_SCROLL_KEY) === '1';
+    const storedScrollTop = Number.parseFloat(sessionStorage.getItem(HOME_SCROLL_TOP_KEY) ?? '');
+    const pendingHomeTab = sessionStorage.getItem(TARGET_HOME_TAB_KEY);
+    const targetTab = isTabId(pendingHomeTab) ? pendingHomeTab : null;
+    if (targetTab) {
+      sessionStorage.removeItem(TARGET_HOME_TAB_KEY);
+    }
+    if (shouldRestoreScroll) {
+      sessionStorage.removeItem(RESTORE_HOME_SCROLL_KEY);
+    }
+
+    if (shouldRestoreScroll && Number.isFinite(storedScrollTop) && storedScrollTop >= 0) {
+      requestAnimationFrame(() => {
+        const container = scrollContainerRef.current;
+        if (!container) return;
+
+        container.scrollTop = storedScrollTop;
+        requestAnimationFrame(() => {
+          container.scrollTop = storedScrollTop;
+          const tabFromScroll = getActiveTabFromScroll(container.scrollTop);
+          setActiveTab(tabFromScroll);
+          updateUrlHash(tabFromScroll, 'replace');
+        });
+      });
+
+      hasInitializedRef.current = true;
+      return;
+    }
+
+    const initialTab: TabId = targetTab ?? 'work';
+    setActiveTab(initialTab);
     requestAnimationFrame(() => {
       scrollToTab(initialTab, { animated: false, historyMode: 'replace' });
+      setTimeout(() => {
+        scrollToTab(initialTab, { animated: false, historyMode: 'none' });
+      }, 0);
     });
     hasInitializedRef.current = true;
-  }, [scrollToTab, scrollViewportHeight, setActiveTabIfChanged]);
+  }, [getActiveTabFromScroll, scrollToTab, scrollViewportHeight, setActiveTab, updateUrlHash]);
 
   useEffect(() => {
     const handlePopState = () => {
       const tab = getTabFromLocation();
-      setActiveTabIfChanged(tab);
+      setActiveTab(tab);
       scrollToTab(tab, { animated: false, historyMode: 'none' });
     };
 
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [scrollToTab, setActiveTabIfChanged]);
+  }, [scrollToTab, setActiveTab]);
 
   useEffect(() => {
     if (!hasInitializedRef.current || isAnimatingRef.current) return;
@@ -282,6 +313,12 @@ export default function Home() {
   const handleTabChange = useCallback((tab: TabId) => {
     scrollToTab(tab, { animated: true, historyMode: 'push' });
   }, [scrollToTab]);
+
+  // Register tab change handler with the persistent shell
+  useEffect(() => {
+    setOnTabChange(handleTabChange);
+    return () => setOnTabChange(null);
+  }, [handleTabChange, setOnTabChange]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -308,7 +345,7 @@ export default function Home() {
           break;
         case '5':
           playSound();
-          setConnectToggleTrigger(prev => prev + 1);
+          triggerConnectToggle();
           break;
         case 'ArrowLeft': {
           event.preventDefault();
@@ -333,7 +370,7 @@ export default function Home() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleTabChange, playSound]);
+  }, [handleTabChange, playSound, triggerConnectToggle]);
 
   useEffect(() => {
     return () => {
@@ -346,74 +383,63 @@ export default function Home() {
   } as CSSProperties;
 
   return (
-    <div className="relative size-full">
-      <div
-        className={`fixed inset-0 bg-white z-50 transition-opacity duration-[1400ms] pointer-events-none ${isLoaded ? 'opacity-0' : 'opacity-100'}`}
-      />
+    <>
+      <div ref={scrollContainerRef} className="landing-scroll-container relative h-full w-full overflow-x-clip overflow-y-auto" style={sectionStyle}>
+        <div className="content-stretch flex flex-col gap-0 items-center relative shrink-0 w-full">
+          <section
+            id="work"
+            ref={node => {
+              sectionRefs.current.work = node;
+            }}
+            data-tab-id="work"
+            className="content-stretch flex flex-col items-center relative shrink-0 w-full"
+          >
+            <Work landingMode />
+          </section>
 
-      <SharedLayout
-        selectedTab={activeTab}
-        onTabChange={handleTabChange}
-        connectToggleTrigger={connectToggleTrigger}
-        hideMobileIntro
-      >
-        <div ref={scrollContainerRef} className="landing-scroll-container relative h-full w-full overflow-x-clip overflow-y-auto" style={sectionStyle}>
-          <div className="content-stretch flex flex-col gap-0 items-center relative shrink-0 w-full">
-            <section
-              id="work"
-              ref={node => {
-                sectionRefs.current.work = node;
-              }}
-              data-tab-id="work"
-              className="content-stretch flex flex-col items-center relative shrink-0 w-full"
-            >
-              <Work landingMode />
-            </section>
+          <section
+            id="about"
+            ref={node => {
+              sectionRefs.current.info = node;
+            }}
+            data-tab-id="info"
+            className="landing-fit-section box-border content-stretch flex flex-col gap-[8px] items-center relative shrink-0 w-full"
+          >
+            <SectionDivider title="ABOUT" />
+            <div className="basis-0 content-stretch flex grow items-center min-h-0 min-w-px relative shrink-0 w-full">
+              <About landingMode />
+            </div>
+          </section>
 
-            <section
-              id="about"
-              ref={node => {
-                sectionRefs.current.info = node;
-              }}
-              data-tab-id="info"
-              className="landing-fit-section box-border content-stretch flex flex-col gap-[8px] items-center relative shrink-0 w-full"
-            >
-              <SectionDivider title="ABOUT" />
-              <div className="basis-0 content-stretch flex grow items-center min-h-0 min-w-px relative shrink-0 w-full">
-                <About landingMode />
-              </div>
-            </section>
+          <section
+            id="play"
+            ref={node => {
+              sectionRefs.current.play = node;
+            }}
+            data-tab-id="play"
+            className="landing-fit-section box-border content-stretch flex flex-col gap-[8px] items-center relative shrink-0 w-full"
+          >
+            <SectionDivider title="PLAY" />
+            <div className="basis-0 content-stretch flex grow items-center min-h-0 min-w-px relative shrink-0 w-full">
+              <Play landingMode />
+            </div>
+          </section>
 
-            <section
-              id="play"
-              ref={node => {
-                sectionRefs.current.play = node;
-              }}
-              data-tab-id="play"
-              className="landing-fit-section box-border content-stretch flex flex-col gap-[8px] items-center relative shrink-0 w-full"
-            >
-              <SectionDivider title="PLAY" />
-              <div className="basis-0 content-stretch flex grow items-center min-h-0 min-w-px relative shrink-0 w-full">
-                <Play landingMode />
-              </div>
-            </section>
-
-            <section
-              id="cv"
-              ref={node => {
-                sectionRefs.current.resume = node;
-              }}
-              data-tab-id="resume"
-              className="landing-fit-section box-border content-stretch flex flex-col gap-[8px] items-center relative shrink-0 w-full"
-            >
-              <SectionDivider title="CV" />
-              <div className="basis-0 content-stretch flex grow items-center min-h-0 min-w-px relative shrink-0 w-full">
-                <Resume landingMode />
-              </div>
-            </section>
-          </div>
+          <section
+            id="cv"
+            ref={node => {
+              sectionRefs.current.resume = node;
+            }}
+            data-tab-id="resume"
+            className="landing-fit-section box-border content-stretch flex flex-col gap-[8px] items-center relative shrink-0 w-full"
+          >
+            <SectionDivider title="CV" />
+            <div className="basis-0 content-stretch flex grow items-center min-h-0 min-w-px relative shrink-0 w-full">
+              <Resume landingMode />
+            </div>
+          </section>
         </div>
-      </SharedLayout>
-    </div>
+      </div>
+    </>
   );
 }

@@ -4,7 +4,7 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
-  --landing-scroll-duration: 560ms;
+  --landing-scroll-duration: 620ms;
 }
 
 @theme inline {
@@ -31,6 +31,8 @@ body,
   width: 100%;
 }
 
+/* ─── Landing scroll system ─── */
+
 .landing-scroll-container {
   --landing-scroll-viewport: 0px;
   --landing-fit-height: var(--landing-scroll-viewport);
@@ -46,7 +48,141 @@ body,
   overflow: hidden;
 }
 
-/* Horizontal scrolling animation */
+/* ─── View Transitions (page navigation) ─── */
+
+[data-content-area] {
+  view-transition-name: content-area;
+}
+
+@keyframes vt-exit-up {
+  to {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+}
+
+@keyframes vt-enter-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+}
+
+@keyframes vt-exit-down {
+  to {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+
+@keyframes vt-enter-down {
+  from {
+    opacity: 0;
+    transform: translateY(-16px);
+  }
+}
+
+/* Forward navigation (default) */
+::view-transition-old(content-area) {
+  animation: vt-exit-up 380ms cubic-bezier(0.25, 0, 0.3, 1) forwards;
+}
+
+::view-transition-new(content-area) {
+  animation: vt-enter-up 450ms cubic-bezier(0.16, 1, 0.3, 1) 80ms both;
+}
+
+/* Back navigation */
+[data-transition-direction="back"]::view-transition-old(content-area) {
+  animation: vt-exit-down 380ms cubic-bezier(0.25, 0, 0.3, 1) forwards;
+}
+
+[data-transition-direction="back"]::view-transition-new(content-area) {
+  animation: vt-enter-down 450ms cubic-bezier(0.16, 1, 0.3, 1) 80ms both;
+}
+
+/* CSS fallback for browsers without View Transitions API */
+[data-content-area] {
+  transition: opacity 380ms cubic-bezier(0.25, 0, 0.3, 1),
+              transform 380ms cubic-bezier(0.25, 0, 0.3, 1);
+}
+
+/* ─── Loading sequence ─── */
+
+/* Phase: hidden — everything invisible */
+[data-loading-phase="hidden"] [data-sidebar] {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+[data-loading-phase="hidden"] [data-content-area] {
+  clip-path: inset(100% 0 0 0);
+  opacity: 0;
+}
+
+/* Phase: logo — sidebar still hidden, logo fades in via component */
+[data-loading-phase="logo"] [data-sidebar] {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+[data-loading-phase="logo"] [data-content-area] {
+  clip-path: inset(100% 0 0 0);
+  opacity: 0;
+}
+
+/* Phase: sidebar — sidebar reveals */
+[data-loading-phase="sidebar"] [data-sidebar] {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 300ms cubic-bezier(0.16, 1, 0.3, 1),
+              transform 300ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+[data-loading-phase="sidebar"] [data-content-area] {
+  clip-path: inset(100% 0 0 0);
+  opacity: 0;
+}
+
+/* Phase: content — content area wipes in */
+[data-loading-phase="content"] [data-sidebar],
+[data-loading-phase="done"] [data-sidebar] {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 300ms cubic-bezier(0.16, 1, 0.3, 1),
+              transform 300ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+[data-loading-phase="content"] [data-content-area],
+[data-loading-phase="done"] [data-content-area] {
+  clip-path: inset(0 0 0 0);
+  opacity: 1;
+  transition: clip-path 500ms cubic-bezier(0.16, 1, 0.3, 1),
+              opacity 400ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ─── Scroll reveal ─── */
+
+.reveal-up {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.reveal-up.revealed {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 500ms cubic-bezier(0.16, 1, 0.3, 1),
+              transform 500ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Stagger children */
+.reveal-up.revealed > .reveal-child:nth-child(1) { transition-delay: 0ms; }
+.reveal-up.revealed > .reveal-child:nth-child(2) { transition-delay: 60ms; }
+.reveal-up.revealed > .reveal-child:nth-child(3) { transition-delay: 120ms; }
+.reveal-up.revealed > .reveal-child:nth-child(4) { transition-delay: 180ms; }
+.reveal-up.revealed > .reveal-child:nth-child(5) { transition-delay: 240ms; }
+
+/* ─── Horizontal scrolling animation ─── */
+
 @keyframes infiniteScroll {
   from {
     transform: translate3d(0, 0, 0);
@@ -69,13 +205,6 @@ body,
   height: 100%;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .horizontal-scrolling-items {
-    animation: none;
-    transform: translate3d(0, 0, 0);
-  }
-}
-
 .horizontal-scrolling-items__item {
   white-space: nowrap;
   font-family: var(--font-geist-mono), monospace;
@@ -87,6 +216,8 @@ body,
   flex-shrink: 0;
   padding-left: 1ch;
 }
+
+/* ─── Snake game animations ─── */
 
 @keyframes snakeCrumble {
   from {
@@ -153,9 +284,35 @@ body,
   animation: glitch 0.4s ease-in-out;
 }
 
+/* ─── Reduced motion ─── */
+
 @media (prefers-reduced-motion: reduce) {
+  .horizontal-scrolling-items {
+    animation: none;
+    transform: translate3d(0, 0, 0);
+  }
+
   .animate-snake-crumble {
     animation-duration: 1ms;
     animation-delay: 0ms;
+  }
+
+  ::view-transition-old(content-area),
+  ::view-transition-new(content-area) {
+    animation-duration: 0ms !important;
+    animation-delay: 0ms !important;
+  }
+
+  .reveal-up {
+    opacity: 1;
+    transform: none;
+  }
+
+  [data-loading-phase] [data-sidebar],
+  [data-loading-phase] [data-content-area] {
+    opacity: 1 !important;
+    transform: none !important;
+    clip-path: none !important;
+    transition: none !important;
   }
 }

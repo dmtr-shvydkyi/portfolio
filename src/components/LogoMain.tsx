@@ -3,9 +3,7 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import { useKeyboardSound } from '@/hooks/useKeyboardSound';
-
-const BLUR_DATA_URL =
-  'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiIgdmlld0JveD0iMCAwIDMyIDMyIj48cmVjdCB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIGZpbGw9IiNkOWQ5ZDkiLz48L3N2Zz4=';
+import { blurDataMap } from '@/data/blurData';
 
 interface LogoMainProps {
   className?: string;
@@ -40,7 +38,7 @@ export default function LogoMain({ className, onClick }: LogoMainProps) {
             width={32}
             height={32}
             placeholder="blur"
-            blurDataURL={BLUR_DATA_URL}
+            blurDataURL={blurDataMap['/logo-lol.png']}
           />
         </div>
       </div>

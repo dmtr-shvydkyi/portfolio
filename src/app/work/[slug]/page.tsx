@@ -3,8 +3,10 @@ import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import CaseStudyHeaderActions from '@/components/CaseStudyHeaderActions';
 import CaseStudyHeroTitle from '@/components/CaseStudyHeroTitle';
-import SharedLayout from '@/components/SharedLayout';
+import Link from '@/components/Link';
+import CaseStudySetup from '@/components/CaseStudySetup';
 import { getWorkProjectBySlug, workProjectSlugs, type WorkProject, type WorkProjectLink } from '@/data/workProjects';
+import { blurDataMap } from '@/data/blurData';
 import { TAB_HREFS } from '@/types/tabs';
 
 interface WorkPageProps {
@@ -70,7 +72,19 @@ function LuminarCasePage({ project }: { project: WorkProject }) {
                 <p className="font-mono font-semibold leading-[16px] text-[rgba(255,255,255,0.32)] tracking-[0.24px] uppercase w-full">
                   {item.label}
                 </p>
-                <p className="font-mono font-semibold leading-[16px] text-white tracking-[0.24px] w-full">{item.value}</p>
+                {item.href ? (
+                  <Link
+                    type="primary"
+                    theme="dark"
+                    href={item.href}
+                    className="inline font-bold"
+                    style={{ textTransform: 'none' }}
+                  >
+                    {item.value}
+                  </Link>
+                ) : (
+                  <p className="font-mono font-semibold leading-[16px] text-white tracking-[0.24px] w-full">{item.value}</p>
+                )}
               </div>
             ))}
           </div>
@@ -104,6 +118,8 @@ function LuminarCasePage({ project }: { project: WorkProject }) {
               fill
               sizes="(max-width: 1024px) calc(100vw - 16px), 944px"
               className="absolute inset-0 max-w-none object-cover size-full"
+              placeholder={blurDataMap[src] ? 'blur' : 'empty'}
+              blurDataURL={blurDataMap[src]}
             />
           </div>
         ))}
@@ -185,18 +201,13 @@ export default async function WorkProjectPage({ params }: WorkPageProps) {
   }
 
   return (
-    <SharedLayout
-      selectedTab="work"
-      tabHrefMap={TAB_HREFS}
-      homeHref={TAB_HREFS.work}
-      contentPaddingMode="none"
-      hideMobileIntro
-    >
+    <>
+      <CaseStudySetup />
       {project.slug === 'luminar-collage' ? (
         <LuminarCasePage project={project} />
       ) : (
         <LightDepthPlaceholderPage project={project} />
       )}
-    </SharedLayout>
+    </>
   );
 }

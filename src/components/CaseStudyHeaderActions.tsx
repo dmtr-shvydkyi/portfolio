@@ -1,9 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from './Link';
 import { useKeyboardSound } from '@/hooks/useKeyboardSound';
+import { usePageTransition } from '@/hooks/usePageTransition';
 import type { WorkProjectLink } from '@/data/workProjects';
 
 interface CaseStudyHeaderActionsProps {
@@ -12,8 +12,10 @@ interface CaseStudyHeaderActionsProps {
   className?: string;
 }
 
+const RESTORE_HOME_SCROLL_KEY = 'portfolio-restore-home-scroll';
+
 export default function CaseStudyHeaderActions({ backHref, links, className }: CaseStudyHeaderActionsProps) {
-  const router = useRouter();
+  const { navigate } = usePageTransition();
   const playSound = useKeyboardSound();
   const [isBackHovered, setIsBackHovered] = useState(false);
   const [isBackPressed, setIsBackPressed] = useState(false);
@@ -42,7 +44,8 @@ export default function CaseStudyHeaderActions({ backHref, links, className }: C
 
   const handleBackClick = () => {
     playSound();
-    router.push(backHref);
+    sessionStorage.setItem(RESTORE_HOME_SCROLL_KEY, '1');
+    navigate(backHref, 'back');
   };
 
   return (

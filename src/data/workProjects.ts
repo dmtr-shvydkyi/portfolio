@@ -1,6 +1,6 @@
 export type WorkProjectSlug = 'luminar-collage' | 'light-depth';
 
-export type WorkProjectInteraction = 'route' | 'linksOnly';
+export type WorkProjectInteraction = 'route' | 'linksOnly' | 'static';
 
 export interface WorkProjectLink {
   text: string;
@@ -10,6 +10,7 @@ export interface WorkProjectLink {
 export interface WorkProjectCaseStudyDetail {
   label: string;
   value: string;
+  href?: string;
 }
 
 export interface WorkProjectCaseStudySection {
@@ -34,6 +35,7 @@ export interface WorkProject {
   mediaSrc: string;
   links?: WorkProjectLink[];
   interaction: WorkProjectInteraction;
+  hoverDisabled?: boolean;
   slug?: WorkProjectSlug;
   caseStudy?: WorkProjectCaseStudy;
 }
@@ -50,7 +52,7 @@ const luminarCollageCaseStudy: WorkProjectCaseStudy = {
     { label: 'Timeline', value: 'Feb 2025 / 3 weeks' },
     { label: 'Role', value: 'Senior Product Designer' },
     { label: 'Tools', value: 'Figma, Jitter, Claude' },
-    { label: 'Company', value: 'Skylum' }
+    { label: 'Company', value: 'Skylum', href: 'https://skylum.com' }
   ],
   sections: [
     {
@@ -94,10 +96,16 @@ export const workProjects: WorkProject[] = [
   },
   {
     dataNodeId: 'card-2',
-    title: 'Luminar Neo',
-    subtitle: 'Light Depth Tool',
+    title: 'Light Depth',
+    subtitle: 'Feature',
     mediaSrc: '/light-depth.mp4',
-    interaction: 'route',
+    links: [
+      {
+        text: 'Watch',
+        url: 'https://youtu.be/ZkcCU-R_nMo?si=4d8kybGHqj-JIAhh&t=51'
+      }
+    ],
+    interaction: 'static',
     slug: 'light-depth'
   },
   {
@@ -111,14 +119,6 @@ export const workProjects: WorkProject[] = [
         url: 'https://www.figma.com/proto/xjXvLIAJJBnI7DXaygTmBD/AI-Chatbot-–-My-Library?page-id=0:1&type=design&node-id=14-3236&viewport=2393,-189,0.27&t=GE4OHunispbOMFVg-1&scaling=scale-down&starting-point-node-id=14:3236'
       }
     ],
-    interaction: 'linksOnly'
-  },
-  {
-    dataNodeId: 'card-4',
-    title: 'Luminar Collage',
-    subtitle: 'UI',
-    mediaSrc: '/collage-1-min.jpg',
-    links: [{ text: 'App Store', url: 'https://apps.apple.com/ua/app/luminar-collage-photo-maker/id6743317674' }],
     interaction: 'linksOnly'
   },
   {

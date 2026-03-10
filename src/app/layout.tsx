@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Geist_Mono } from "next/font/google";
+import { NavigationProvider } from "@/components/NavigationContext";
+import PersistentShell from "@/components/PersistentShell";
 import "./globals.css";
 
 const geistMono = Geist_Mono({
@@ -11,10 +13,6 @@ export const metadata: Metadata = {
   metadataBase: new URL('https://shvydkyi.me'),
   title: "Dmytro Shvydkyi",
   description: "Product Designer based in Kyiv, Ukraine",
-  // Let App Router file-based metadata handle icons placed in `src/app`:
-  // - `src/app/favicon.ico`
-  // - `src/app/apple-icon.png`
-  // - optional: `src/app/icon.png` or `src/app/icon.svg`
   manifest: '/manifest.json',
   openGraph: {
     title: "Dmytro Shvydkyi",
@@ -51,7 +49,11 @@ export default function RootLayout({
       <body
         className={`${geistMono.variable} antialiased`}
       >
-        {children}
+        <NavigationProvider>
+          <PersistentShell>
+            {children}
+          </PersistentShell>
+        </NavigationProvider>
       </body>
     </html>
   );

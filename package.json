@@ -6,6 +6,8 @@
     "dev": "next dev -p 3000",
     "clean": "node -e \"const fs=require('fs'); for (const dir of ['.next','.next-dev']) fs.rmSync(dir,{recursive:true,force:true});\"",
     "dev:clean": "npm run clean && next dev -p 3000",
+    "prebuild": "node scripts/generate-blur-data.mjs",
+    "blur": "node scripts/generate-blur-data.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"
