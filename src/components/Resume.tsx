@@ -36,8 +36,8 @@ export default function Resume({ landingMode = false }: ResumeProps) {
           <Image
             src="/image-cv.jpg"
             alt="Resume"
-            width={400}
-            height={566}
+            width={840}
+            height={666}
             className="h-auto w-full"
             sizes="(max-width: 440px) 100vw, 400px"
             placeholder="blur"
