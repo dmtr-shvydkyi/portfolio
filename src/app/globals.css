@@ -82,6 +82,17 @@ body,
   }
 }
 
+.app-shell:has([data-not-found-page]) [data-sidebar],
+.app-shell:has([data-not-found-page]) [data-shell-bottom-bar] {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .app-shell:has([data-not-found-page]) [data-shell-main] {
+    grid-area: 1 / 1 / auto / span 4;
+  }
+}
+
 /* ─── Landing scroll system ─── */
 
 .landing-scroll-container {

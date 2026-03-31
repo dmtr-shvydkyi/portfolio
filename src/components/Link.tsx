@@ -1,5 +1,6 @@
 'use client';
 
+import NextLink from 'next/link';
 import { useState } from 'react';
 import { useKeyboardSound } from '@/hooks/useKeyboardSound';
 
@@ -27,6 +28,7 @@ export default function Link({
   const [isHovered, setIsHovered] = useState(false);
   const [isPressed, setIsPressed] = useState(false);
   const playSound = useKeyboardSound();
+  const isInternalHref = Boolean(href && (href.startsWith('/') || href.startsWith('#')));
 
   const getLinkStyles = () => {
     const isHover = state === 'hover' || isHovered;
@@ -81,6 +83,24 @@ export default function Link({
   };
 
   if (href) {
+    if (isInternalHref) {
+      return (
+        <NextLink
+          href={href}
+          className={wrapperClassName}
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={handleMouseLeave}
+          onMouseDown={() => setIsPressed(true)}
+          onMouseUp={() => setIsPressed(false)}
+          onClick={handleClick}
+        >
+          <span className={textClassName} style={style}>
+            {children}
+          </span>
+        </NextLink>
+      );
+    }
+
     return (
       <a
         href={href}

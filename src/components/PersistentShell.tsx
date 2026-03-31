@@ -139,12 +139,13 @@ export default function PersistentShell({ children }: PersistentShellProps) {
 
       {/* Content area */}
       <div
+        data-shell-main
         className="basis-0 bg-[#0d0d0d] content-stretch flex flex-col grow items-center min-h-0 min-w-px overflow-clip relative shrink-0 w-full md:[grid-area:1_/_2_/_auto_/_span_3] md:h-screen md:min-h-px"
       >
         <div data-content-area className={contentContainerClassName}>
           {children}
         </div>
-        <div className="app-shell-bottom-bar content-stretch flex items-end justify-between relative shrink-0 w-full">
+        <div data-shell-bottom-bar className="app-shell-bottom-bar content-stretch flex items-end justify-between relative shrink-0 w-full">
           <TabsNavigation
             selected={activeTab}
             className="content-stretch flex gap-[8px] items-center relative shrink-0"

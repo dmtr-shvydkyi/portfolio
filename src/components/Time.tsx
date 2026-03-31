@@ -4,9 +4,10 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 
 interface TimeProps {
   className?: string;
+  locationLabel?: string;
 }
 
-export default function Time({ className }: TimeProps) {
+export default function Time({ className, locationLabel = 'Kyiv' }: TimeProps) {
   const [displayTime, setDisplayTime] = useState('00:00');
   const [showColon, setShowColon] = useState(true);
   const animationRef = useRef<NodeJS.Timeout | null>(null);
@@ -72,7 +73,7 @@ export default function Time({ className }: TimeProps) {
         <p className="relative shrink-0 font-mono tabular-nums" data-node-id="622:1567">{displayTime}</p>
         <p className="relative shrink-0" data-node-id="622:1568">,</p>
       </div>
-      <p className="relative shrink-0" data-node-id="622:1569">Kyiv</p>
+      <p className="relative shrink-0" data-node-id="622:1569">{locationLabel}</p>
     </div>
   );
 }

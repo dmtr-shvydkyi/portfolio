@@ -38,7 +38,7 @@ export default function LogoMain({ className, onClick }: LogoMainProps) {
             blurDataURL={blurDataMap['/logo-lol.png']}
             sizes="32px"
             containerClassName="size-full"
-            className="object-50%-50% object-cover"
+            className="[image-rendering:pixelated] object-50%-50% object-cover"
           />
         </div>
       </div>

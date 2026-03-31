@@ -92,6 +92,7 @@ Visual language:
 Global layout behavior:
 - Desktop: 4-column grid where left panel is identity/status and right panel is content.
 - Mobile: stacked layout with fixed-height top identity panel and flexible content panel.
+- The logo uses pixelated image rendering so the source pixel-art stays crisp instead of being smoothed by the browser.
 
 Global interaction model:
 - Keyboard sounds on most tab/button/link interactions.
@@ -292,10 +293,17 @@ Running news ticker:
 Files:
 - `src/app/not-found.tsx`
 - `src/components/NotFound.tsx`
+- `src/components/PersistentShell.tsx`
 
 Behavior:
 - Reuses visual language with status bar and dark content area.
+- When a route resolves to `notFound()`, the shared shell hides the identity sidebar and bottom navigation so the 404 composition expands across the full desktop width.
+- The 404 page restores the left-column identity content locally: logo, name/role, and the "Currently at Skylum" link.
+- On mobile, the 404 page follows the main shell stacking pattern: the white identity/status block appears as a top section above the dark 404 panel, with the same `8px` dark outer frame and `8px` separation used by the home shell.
+- The 404 status clock keeps the existing animated time behavior but changes the location label from `Kyiv` to `Mercury`.
+- The 404 status ticker copy is `Where am I · Who am I · When am I ·`.
 - Displays large `404` and "go home" link.
+- Both the 404 logo and "go home" action return to `/#work` via in-app client navigation rather than opening a new tab.
 
 ## 8) API Specification
 
@@ -411,9 +419,8 @@ Known gaps:
 ## 14) Known Limitations and Suggested Improvements
 
 Product/UX limitations:
-1. Internal navigation path handling is mixed with external-link behavior in custom `Link` component.
-2. `newsData.ts` exists but is currently unused by running ticker.
-3. Keyboard accessibility can be improved for custom tab/button elements.
+1. `newsData.ts` exists but is currently unused by running ticker.
+2. Keyboard accessibility can be improved for custom tab/button elements.
 
 Technical improvement opportunities:
 1. Replace deprecated/legacy timezone alias (`Europe/Kiev`) with modern canonical value (`Europe/Kyiv`) where appropriate.
