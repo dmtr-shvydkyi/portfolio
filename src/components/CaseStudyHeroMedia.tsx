@@ -4,27 +4,29 @@ import { useEffect, useRef, useState } from 'react';
 
 interface CaseStudyHeroMediaProps {
   src: string;
+  eager?: boolean;
   className?: string;
 }
 
 export default function CaseStudyHeroMedia({
   src,
+  eager = false,
   className = 'object-50%-50% object-cover',
 }: CaseStudyHeroMediaProps) {
   const isVideo = src.endsWith('.mp4') || src.endsWith('.mov');
   const [isMediaLoaded, setIsMediaLoaded] = useState(false);
-  const [shouldLoadVideo, setShouldLoadVideo] = useState(!isVideo);
+  const [shouldLoadVideo, setShouldLoadVideo] = useState(eager || !isVideo);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const videoType = src.endsWith('.mov') ? 'video/quicktime' : 'video/mp4';
 
   useEffect(() => {
     setIsMediaLoaded(false);
-    setShouldLoadVideo(!isVideo);
-  }, [isVideo, src]);
+    setShouldLoadVideo(eager || !isVideo);
+  }, [eager, isVideo, src]);
 
   useEffect(() => {
-    if (!isVideo || shouldLoadVideo) return;
+    if (!isVideo || eager || shouldLoadVideo) return;
     const container = containerRef.current;
     if (!container) return;
 
@@ -46,7 +48,7 @@ export default function CaseStudyHeroMedia({
 
     observer.observe(container);
     return () => observer.disconnect();
-  }, [isVideo, shouldLoadVideo]);
+  }, [eager, isVideo, shouldLoadVideo]);
 
   useEffect(() => {
     if (!isVideo || !shouldLoadVideo) return;
@@ -74,7 +76,7 @@ export default function CaseStudyHeroMedia({
           loop
           muted
           playsInline
-          preload={shouldLoadVideo ? 'metadata' : 'none'}
+          preload={shouldLoadVideo ? (eager ? 'auto' : 'metadata') : 'none'}
           onLoadedData={() => setIsMediaLoaded(true)}
           onLoadedMetadata={() => setIsMediaLoaded(true)}
           onCanPlay={() => setIsMediaLoaded(true)}

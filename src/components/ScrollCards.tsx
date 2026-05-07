@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { workProjects, type WorkProject, type WorkProjectInteraction, type WorkProjectLink } from '@/data/workProjects';
 import { blurDataMap } from '@/data/blurData';
 import Link from './Link';
@@ -20,6 +21,7 @@ interface DesignCardProps {
   dataNodeId: string;
   interaction: WorkProjectInteraction;
   routeHref?: string;
+  eagerVideo?: boolean;
   supportsHover: boolean;
   isMobileActive: boolean;
   setCardElement: (node: HTMLDivElement | null) => void;
@@ -87,6 +89,7 @@ function DesignCard({
   dataNodeId,
   interaction,
   routeHref,
+  eagerVideo = false,
   supportsHover,
   isMobileActive,
   setCardElement,
@@ -104,6 +107,7 @@ function DesignCard({
   const dividerMeasureRef = useRef<HTMLSpanElement | null>(null);
   const subtitleMeasureRef = useRef<HTMLSpanElement | null>(null);
   const { navigate } = usePageTransition();
+  const router = useRouter();
   const playSound = useKeyboardSound();
   const videoType = mediaSrc.endsWith('.mov') ? 'video/quicktime' : 'video/mp4';
   const isRouteCard = interaction === 'route' && Boolean(routeHref);
@@ -111,11 +115,17 @@ function DesignCard({
 
   useEffect(() => {
     setIsMediaLoaded(false);
-    setShouldLoadVideo(!isVideo);
-  }, [isVideo, mediaSrc]);
+    setShouldLoadVideo(eagerVideo || !isVideo);
+  }, [eagerVideo, isVideo, mediaSrc]);
 
   useEffect(() => {
-    if (!isVideo || shouldLoadVideo) return;
+    if (!isRouteCard || !routeHref) return;
+
+    router.prefetch(routeHref);
+  }, [isRouteCard, routeHref, router]);
+
+  useEffect(() => {
+    if (!isVideo || eagerVideo || shouldLoadVideo) return;
     const card = cardRef.current;
     if (!card) return;
 
@@ -137,7 +147,7 @@ function DesignCard({
 
     observer.observe(card);
     return () => observer.disconnect();
-  }, [isVideo, shouldLoadVideo]);
+  }, [eagerVideo, isVideo, shouldLoadVideo]);
 
   useEffect(() => {
     if (!isVideo || !shouldLoadVideo) return;
@@ -273,7 +283,7 @@ function DesignCard({
             loop
             muted
             playsInline
-            preload={shouldLoadVideo ? 'metadata' : 'none'}
+            preload={shouldLoadVideo ? (eagerVideo ? 'auto' : 'metadata') : 'none'}
             onLoadedData={() => setIsMediaLoaded(true)}
             onLoadedMetadata={() => setIsMediaLoaded(true)}
             onCanPlay={() => setIsMediaLoaded(true)}
@@ -528,7 +538,7 @@ export default function ScrollCards({ className }: ScrollCardsProps) {
 
   return (
     <div ref={listRef} className={className} data-name="_scroll-cards" data-node-id="552:36229">
-      {workProjects.map((project) => (
+      {workProjects.map((project, index) => (
         <DesignCard
           key={project.dataNodeId}
           title={project.title}
@@ -538,6 +548,7 @@ export default function ScrollCards({ className }: ScrollCardsProps) {
           dataNodeId={project.dataNodeId}
           interaction={project.interaction}
           routeHref={getRouteHref(project)}
+          eagerVideo={index === 0}
           supportsHover={supportsHover}
           isMobileActive={activeMobileCardId === project.dataNodeId}
           setCardElement={(node) => setCardElement(project.dataNodeId, node)}

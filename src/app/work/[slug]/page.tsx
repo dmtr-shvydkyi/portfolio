@@ -64,6 +64,7 @@ function LuminarCasePage({ project }: { project: WorkProject }) {
         <div className="relative aspect-[944/531] shrink-0 w-full bg-[#0f0f0f]">
           <CaseStudyHeroMedia
             src={caseStudy.heroVideoSrc}
+            eager
           />
         </div>
 
@@ -148,6 +149,7 @@ function LightDepthPlaceholderPage({ project }: { project: WorkProject }) {
           <div className="relative aspect-[944/531] w-full bg-[#0f0f0f]">
             <CaseStudyHeroMedia
               src={project.mediaSrc}
+              eager
             />
           </div>
         </div>
