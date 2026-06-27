@@ -36,6 +36,26 @@ const LEADERBOARD_API = '/api/snake/leaderboard';
 const NICKNAME_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
 const MOBILE_JOYSTICK_SIZE = 220;
 const MOBILE_JOYSTICK_BUTTON_SIZE = 56;
+const KEYBOARD_DIRECTION_BY_CODE: Record<string, { direction: Direction; pressedKey: string }> = {
+  KeyW: { direction: 'up', pressedKey: 'w' },
+  KeyA: { direction: 'left', pressedKey: 'a' },
+  KeyS: { direction: 'down', pressedKey: 's' },
+  KeyD: { direction: 'right', pressedKey: 'd' },
+  ArrowUp: { direction: 'up', pressedKey: 'w' },
+  ArrowLeft: { direction: 'left', pressedKey: 'a' },
+  ArrowDown: { direction: 'down', pressedKey: 's' },
+  ArrowRight: { direction: 'right', pressedKey: 'd' },
+};
+const KEYBOARD_DIRECTION_BY_KEY: Record<string, { direction: Direction; pressedKey: string }> = {
+  w: { direction: 'up', pressedKey: 'w' },
+  a: { direction: 'left', pressedKey: 'a' },
+  s: { direction: 'down', pressedKey: 's' },
+  d: { direction: 'right', pressedKey: 'd' },
+  arrowup: { direction: 'up', pressedKey: 'w' },
+  arrowleft: { direction: 'left', pressedKey: 'a' },
+  arrowdown: { direction: 'down', pressedKey: 's' },
+  arrowright: { direction: 'right', pressedKey: 'd' },
+};
 
 const MOBILE_JOYSTICK_BUTTONS: Array<{
   direction: Direction;
@@ -117,6 +137,10 @@ const generateNickname = () => {
     NICKNAME_CHARS[Math.floor(Math.random() * NICKNAME_CHARS.length)]
   ).join('');
   return `${randomBlock()}.${randomBlock()}.${randomBlock()}.${suffix}`;
+};
+
+const getKeyboardDirection = (event: KeyboardEvent) => {
+  return KEYBOARD_DIRECTION_BY_CODE[event.code] ?? KEYBOARD_DIRECTION_BY_KEY[event.key.toLowerCase()] ?? null;
 };
 
 interface PlayProps {
@@ -618,10 +642,9 @@ export default function Play({ landingMode = false }: PlayProps) {
         return;
       }
 
-      const key = e.key.toLowerCase();
-      const isArrowKey = ['arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(key);
+      const keyboardDirection = getKeyboardDirection(e);
 
-      if (isArrowKey) {
+      if (keyboardDirection) {
         e.preventDefault();
         e.stopPropagation();
       }
@@ -630,33 +653,15 @@ export default function Play({ landingMode = false }: PlayProps) {
         return;
       }
 
-      let newDirection: Direction | null = null;
-
       // Handle WASD and arrow keys
-      switch (key) {
-        case 'w':
-        case 'arrowup':
-          if (direction !== 'down') newDirection = 'up';
-          setPressedKey('w');
-          break;
-        case 's':
-        case 'arrowdown':
-          if (direction !== 'up') newDirection = 'down';
-          setPressedKey('s');
-          break;
-        case 'a':
-        case 'arrowleft':
-          if (direction !== 'right') newDirection = 'left';
-          setPressedKey('a');
-          break;
-        case 'd':
-        case 'arrowright':
-          if (direction !== 'left') newDirection = 'right';
-          setPressedKey('d');
-          break;
+      if (!keyboardDirection) {
+        return;
       }
 
-      if (newDirection && newDirection !== direction) {
+      const { direction: newDirection, pressedKey: nextPressedKey } = keyboardDirection;
+      setPressedKey(nextPressedKey);
+
+      if (newDirection !== direction) {
         e.preventDefault();
         e.stopPropagation();
         requestDirectionChange(newDirection);
@@ -664,8 +669,7 @@ export default function Play({ landingMode = false }: PlayProps) {
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
-      const key = e.key.toLowerCase();
-      if (['w', 'a', 's', 'd', 'arrowup', 'arrowleft', 'arrowdown', 'arrowright'].includes(key)) {
+      if (getKeyboardDirection(e)) {
         setPressedKey(null);
       }
     };

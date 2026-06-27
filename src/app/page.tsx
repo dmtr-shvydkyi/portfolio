@@ -73,7 +73,7 @@ function SectionDivider({ title }: { title: string }) {
 
 export default function Home() {
   const { activeTab, setActiveTab, triggerConnectToggle, setOnTabChange } = useNavigation();
-  const [scrollViewportHeight, setScrollViewportHeight] = useState(0);
+  const [scrollViewportHeight, setScrollViewportHeight] = useState<number | null>(null);
   const playSound = useKeyboardSound();
 
   const activeTabRef = useRef<TabId>('work');
@@ -250,7 +250,7 @@ export default function Home() {
   }, [getActiveTabFromScroll, setActiveTab]);
 
   useLayoutEffect(() => {
-    if (hasInitializedRef.current || scrollViewportHeight <= 0) return;
+    if (hasInitializedRef.current || scrollViewportHeight === null || scrollViewportHeight <= 0) return;
 
     const shouldRestoreScroll = sessionStorage.getItem(RESTORE_HOME_SCROLL_KEY) === '1';
     const storedScrollTop = Number.parseFloat(sessionStorage.getItem(HOME_SCROLL_TOP_KEY) ?? '');
@@ -376,9 +376,11 @@ export default function Home() {
     };
   }, [cancelScrollAnimation]);
 
-  const sectionStyle = {
-    '--landing-scroll-viewport': `${scrollViewportHeight}px`,
-  } as CSSProperties;
+  const sectionStyle = scrollViewportHeight === null
+    ? undefined
+    : ({
+        '--landing-scroll-viewport': `${scrollViewportHeight}px`,
+      } as CSSProperties);
 
   return (
     <>

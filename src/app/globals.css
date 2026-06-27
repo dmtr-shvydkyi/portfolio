@@ -96,7 +96,7 @@ body,
 /* ─── Landing scroll system ─── */
 
 .landing-scroll-container {
-  --landing-scroll-viewport: 0px;
+  --landing-scroll-viewport: calc(var(--app-viewport-height) - 44px - var(--safe-area-bottom));
   --landing-fit-height: var(--landing-scroll-viewport);
 }
 
