@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback, type CSSProperties } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef, useCallback, type CSSProperties } from 'react';
 import { useKeyboardSound } from '@/hooks/useKeyboardSound';
 import { type LeaderboardEntry } from '@/components/Leaderboard';
 
@@ -149,7 +149,6 @@ interface PlayProps {
 
 export default function Play({ landingMode = false }: PlayProps) {
   const [gameState, setGameState] = useState<GameState>('idle');
-  const [actualCellSize, setActualCellSize] = useState(BASE_CELL_SIZE);
   const [boardSize, setBoardSize] = useState(GRID_SIZE * BASE_CELL_SIZE);
   const [speed, setSpeed] = useState(BASE_GAME_SPEED);
   const [score, setScore] = useState(0);
@@ -168,6 +167,7 @@ export default function Play({ landingMode = false }: PlayProps) {
   const [activeMobileDirection, setActiveMobileDirection] = useState<Direction | null>(null);
   const [, setLeaderboardEntries] = useState<LeaderboardEntry[]>([]);
   const [leaderboardNick, setLeaderboardNick] = useState<string | null>(null);
+  const actualCellSize = boardSize / GRID_SIZE;
   
   const gameLoopRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const nextDirectionRef = useRef<Direction>('right');
@@ -318,7 +318,7 @@ export default function Play({ landingMode = false }: PlayProps) {
   }, [snake]);
 
   // Calculate board size to fit the view and align to the grid
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (gameState !== 'playing' && gameState !== 'paused') return;
     const playArea = playAreaRef.current;
     if (!playArea) return;
@@ -357,10 +357,6 @@ export default function Play({ landingMode = false }: PlayProps) {
     window.addEventListener('resize', updateBoardSize);
     return () => window.removeEventListener('resize', updateBoardSize);
   }, [gameState, isMobileControls]);
-
-  useEffect(() => {
-    setActualCellSize(boardSize / GRID_SIZE);
-  }, [boardSize]);
 
   useEffect(() => {
     if (!LEADERBOARD_ENABLED) return;
@@ -820,22 +816,23 @@ export default function Play({ landingMode = false }: PlayProps) {
     <div className={introStackClass}>
       <div className="content-stretch flex flex-col items-center justify-center relative shrink-0 w-full">
         <div className="content-stretch flex flex-col font-mono font-semibold gap-[8px] items-center relative shrink-0 uppercase w-full">
-          {!isNewBestScore && (
-            <div className="content-stretch flex gap-[8px] items-start justify-center leading-[16px] relative shrink-0 text-[12px] text-[rgba(255,255,255,0.4)] text-nowrap tracking-[0.24px] whitespace-pre">
-              <p className="relative shrink-0">
-                Best Score:
-              </p>
-              <p className="relative shrink-0">
-                {finalBestScore}
-              </p>
-            </div>
-          )}
+          <div
+            aria-hidden={isNewBestScore}
+            className={`content-stretch flex gap-[8px] items-start justify-center leading-[16px] relative shrink-0 text-[12px] text-[rgba(255,255,255,0.4)] text-nowrap tracking-[0.24px] whitespace-pre ${isNewBestScore ? 'invisible' : ''}`}
+          >
+            <p className="relative shrink-0">
+              Best Score:
+            </p>
+            <p className="relative shrink-0">
+              {finalBestScore}
+            </p>
+          </div>
           <p className="leading-[48px] min-w-full relative shrink-0 text-[40px] text-white text-center w-[min-content]">
             {isNewBestScore ? 'BEST score' : 'GAMe over'}
           </p>
         </div>
         <div className="mt-[16px] font-mono font-semibold leading-[16px] relative shrink-0 text-[12px] text-[rgba(255,255,255,0.32)] text-center tracking-[0.24px] w-[280px]">
-          <p className="mb-[8px]">
+          <p>
             {score === 0 ? 'Try moving, WASD, please...' :
             isNewBestScore ? 'Very nice!' :
             'Not bad. Could be better.'}

@@ -37,7 +37,7 @@ export default function BlurRevealImage({
       placeholder={blurDataURL ? 'blur' : 'empty'}
       blurDataURL={blurDataURL}
       onLoad={() => setIsLoaded(true)}
-      className={`absolute inset-0 size-full max-w-none object-cover transition-opacity duration-500 ease-out ${isLoaded ? 'opacity-100' : 'opacity-0'} ${className}`.trim()}
+      className={`absolute inset-0 size-full max-w-none object-cover transition-opacity duration-200 ease-out ${isLoaded ? 'opacity-100' : 'opacity-0'} ${className}`.trim()}
     />
   );
 }

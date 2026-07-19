@@ -417,7 +417,7 @@ export default function Home() {
               sectionRefs.current.play = node;
             }}
             data-tab-id="play"
-            className="landing-fit-section box-border content-stretch flex flex-col gap-[8px] items-center relative shrink-0 w-full"
+            className="landing-fit-section box-border content-stretch flex flex-col gap-[8px] items-center relative shrink-0 w-full [overflow-anchor:none]"
           >
             <SectionDivider title="PLAY" />
             <div className="basis-0 content-stretch flex grow items-center min-h-0 min-w-px relative shrink-0 w-full">

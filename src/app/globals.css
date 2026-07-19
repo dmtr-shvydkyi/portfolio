@@ -247,6 +247,37 @@ body,
   will-change: transform, opacity;
 }
 
+/* ─── 404 breakout animations ─── */
+
+@keyframes brickCrumble {
+  from {
+    transform: translate(0, 0) rotate(0deg);
+    opacity: 1;
+  }
+
+  to {
+    transform: translate(var(--dx, 0px), var(--dy, 0px)) rotate(var(--rot, 0deg));
+    opacity: 0;
+  }
+}
+
+.animate-brick-crumble {
+  animation: brickCrumble var(--crumble-duration, 420ms) ease-out forwards;
+  will-change: transform, opacity;
+  pointer-events: none;
+}
+
+@keyframes powerUpSpin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+.animate-powerup-spin {
+  animation: powerUpSpin 3s linear infinite;
+  will-change: transform;
+}
+
 /* Shake effect animation */
 @keyframes glitch {
 
@@ -307,6 +338,15 @@ body,
   .animate-snake-crumble {
     animation-duration: 1ms;
     animation-delay: 0ms;
+  }
+
+  .animate-brick-crumble {
+    animation-duration: 1ms;
+    animation-delay: 0ms;
+  }
+
+  .animate-powerup-spin {
+    animation: none;
   }
 
   ::view-transition-old(content-area),

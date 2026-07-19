@@ -55,6 +55,10 @@ export default function CaseStudyHeroMedia({
     const video = videoRef.current;
     if (!video) return;
 
+    if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+      setIsMediaLoaded(true);
+    }
+
     const playPromise = video.play();
     if (playPromise && typeof playPromise.catch === 'function') {
       playPromise.catch(() => {});
@@ -78,8 +82,8 @@ export default function CaseStudyHeroMedia({
           playsInline
           preload={shouldLoadVideo ? (eager ? 'auto' : 'metadata') : 'none'}
           onLoadedData={() => setIsMediaLoaded(true)}
-          onLoadedMetadata={() => setIsMediaLoaded(true)}
           onCanPlay={() => setIsMediaLoaded(true)}
+          onPlaying={() => setIsMediaLoaded(true)}
         >
           {shouldLoadVideo ? <source src={src} type={videoType} /> : null}
         </video>

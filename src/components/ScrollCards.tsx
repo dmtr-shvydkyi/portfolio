@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type TransitionEvent } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { workProjects, type WorkProject, type WorkProjectInteraction, type WorkProjectLink } from '@/data/workProjects';
@@ -22,6 +22,9 @@ interface DesignCardProps {
   interaction: WorkProjectInteraction;
   routeHref?: string;
   eagerVideo?: boolean;
+  videoOrder?: number;
+  canLoadVideo?: boolean;
+  onVideoReady?: (videoOrder: number) => void;
   supportsHover: boolean;
   isMobileActive: boolean;
   setCardElement: (node: HTMLDivElement | null) => void;
@@ -29,6 +32,13 @@ interface DesignCardProps {
 
 const BLUR_DATA_URL =
   'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZ2h0PSIxMyIgdmlld0JveD0iMCAwIDIwIDEzIj48cmVjdCB3aWR0aD0iMjAiIGhlaWdodD0iMTMiIGZpbGw9IiMxMzEzMTMiLz48L3N2Zz4=';
+const WORK_MEDIA_SIZES = '(max-width: 767px) calc(100vw - 16px), 75vw';
+const WORK_IMAGE_QUALITY = 90;
+const VIDEO_ORDER_BY_CARD_ID = new Map(
+  workProjects
+    .filter(project => project.mediaSrc.endsWith('.mp4') || project.mediaSrc.endsWith('.mov'))
+    .map((project, index) => [project.dataNodeId, index])
+);
 const HOME_SCROLL_TOP_KEY = 'portfolio-home-scroll-top';
 const MOBILE_CARD_INSET = 8;
 const MOBILE_METADATA_GAP = 8;
@@ -90,6 +100,9 @@ function DesignCard({
   interaction,
   routeHref,
   eagerVideo = false,
+  videoOrder,
+  canLoadVideo = true,
+  onVideoReady,
   supportsHover,
   isMobileActive,
   setCardElement,
@@ -99,9 +112,10 @@ function DesignCard({
   const [mobileTextMaxWidth, setMobileTextMaxWidth] = useState<number | null>(null);
   const isVideo = mediaSrc.endsWith('.mp4') || mediaSrc.endsWith('.mov');
   const [isMediaLoaded, setIsMediaLoaded] = useState(false);
-  const [shouldLoadVideo, setShouldLoadVideo] = useState(!isVideo);
+  const [isNearViewport, setIsNearViewport] = useState(eagerVideo || !isVideo);
   const cardRef = useRef<HTMLDivElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const hasReportedVideoReadyRef = useRef(false);
   const mobileLinkRef = useRef<HTMLDivElement | null>(null);
   const titleMeasureRef = useRef<HTMLSpanElement | null>(null);
   const dividerMeasureRef = useRef<HTMLSpanElement | null>(null);
@@ -112,10 +126,12 @@ function DesignCard({
   const videoType = mediaSrc.endsWith('.mov') ? 'video/quicktime' : 'video/mp4';
   const isRouteCard = interaction === 'route' && Boolean(routeHref);
   const firstLink = links?.[0];
+  const shouldLoadVideo = !isVideo || (canLoadVideo && isNearViewport);
 
   useEffect(() => {
     setIsMediaLoaded(false);
-    setShouldLoadVideo(eagerVideo || !isVideo);
+    setIsNearViewport(eagerVideo || !isVideo);
+    hasReportedVideoReadyRef.current = false;
   }, [eagerVideo, isVideo, mediaSrc]);
 
   useEffect(() => {
@@ -125,12 +141,12 @@ function DesignCard({
   }, [isRouteCard, routeHref, router]);
 
   useEffect(() => {
-    if (!isVideo || eagerVideo || shouldLoadVideo) return;
+    if (!isVideo || eagerVideo || isNearViewport) return;
     const card = cardRef.current;
     if (!card) return;
 
     if (typeof IntersectionObserver === 'undefined') {
-      setShouldLoadVideo(true);
+      setIsNearViewport(true);
       return;
     }
 
@@ -138,7 +154,7 @@ function DesignCard({
       entries => {
         const [entry] = entries;
         if (entry?.isIntersecting) {
-          setShouldLoadVideo(true);
+          setIsNearViewport(true);
           observer.disconnect();
         }
       },
@@ -147,7 +163,7 @@ function DesignCard({
 
     observer.observe(card);
     return () => observer.disconnect();
-  }, [eagerVideo, isVideo, shouldLoadVideo]);
+  }, [eagerVideo, isNearViewport, isVideo]);
 
   useEffect(() => {
     if (!isVideo || !shouldLoadVideo) return;
@@ -159,6 +175,31 @@ function DesignCard({
       playPromise.catch(() => {});
     }
   }, [isVideo, shouldLoadVideo]);
+
+  const handleVideoReady = useCallback(() => {
+    setIsMediaLoaded(true);
+  }, []);
+
+  const handleVideoRevealComplete = useCallback((event: TransitionEvent<HTMLVideoElement>) => {
+    if (
+      event.propertyName !== 'opacity'
+      || !isMediaLoaded
+      || hasReportedVideoReadyRef.current
+      || videoOrder === undefined
+    ) return;
+
+    hasReportedVideoReadyRef.current = true;
+    onVideoReady?.(videoOrder);
+  }, [isMediaLoaded, onVideoReady, videoOrder]);
+
+  useEffect(() => {
+    if (!isVideo || !shouldLoadVideo) return;
+    const video = videoRef.current;
+
+    if (video && video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+      handleVideoReady();
+    }
+  }, [handleVideoReady, isVideo, shouldLoadVideo]);
 
   useEffect(() => {
     if (!subtitle) {
@@ -284,9 +325,10 @@ function DesignCard({
             muted
             playsInline
             preload={shouldLoadVideo ? (eagerVideo ? 'auto' : 'metadata') : 'none'}
-            onLoadedData={() => setIsMediaLoaded(true)}
-            onLoadedMetadata={() => setIsMediaLoaded(true)}
-            onCanPlay={() => setIsMediaLoaded(true)}
+            onLoadedData={handleVideoReady}
+            onCanPlay={handleVideoReady}
+            onPlaying={handleVideoReady}
+            onTransitionEnd={handleVideoRevealComplete}
           >
             {shouldLoadVideo ? <source src={mediaSrc} type={videoType} /> : null}
           </video>
@@ -296,7 +338,8 @@ function DesignCard({
             className={`absolute inset-0 max-w-none object-50%-50% object-cover size-full transition-opacity duration-500 ease-out ${isMediaLoaded ? 'opacity-100' : 'opacity-0'}`}
             src={mediaSrc}
             fill
-            sizes="(max-width: 768px) 100vw, 50vw"
+            sizes={WORK_MEDIA_SIZES}
+            quality={WORK_IMAGE_QUALITY}
             placeholder="blur"
             blurDataURL={blurDataMap[mediaSrc] ?? BLUR_DATA_URL}
             onLoad={() => setIsMediaLoaded(true)}
@@ -437,8 +480,13 @@ function getRouteHref(project: WorkProject): string | undefined {
 export default function ScrollCards({ className }: ScrollCardsProps) {
   const [supportsHover, setSupportsHover] = useState(true);
   const [activeMobileCardId, setActiveMobileCardId] = useState<string | null>(null);
+  const [unlockedVideoCount, setUnlockedVideoCount] = useState(1);
   const listRef = useRef<HTMLDivElement | null>(null);
   const cardElementsRef = useRef(new Map<string, HTMLDivElement>());
+
+  const handleVideoReady = useCallback((videoOrder: number) => {
+    setUnlockedVideoCount(current => Math.max(current, videoOrder + 2));
+  }, []);
 
   useEffect(() => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
@@ -538,22 +586,29 @@ export default function ScrollCards({ className }: ScrollCardsProps) {
 
   return (
     <div ref={listRef} className={className} data-name="_scroll-cards" data-node-id="552:36229">
-      {workProjects.map((project, index) => (
-        <DesignCard
-          key={project.dataNodeId}
-          title={project.title}
-          subtitle={project.subtitle}
-          mediaSrc={project.mediaSrc}
-          links={project.links}
-          dataNodeId={project.dataNodeId}
-          interaction={project.interaction}
-          routeHref={getRouteHref(project)}
-          eagerVideo={index === 0}
-          supportsHover={supportsHover}
-          isMobileActive={activeMobileCardId === project.dataNodeId}
-          setCardElement={(node) => setCardElement(project.dataNodeId, node)}
-        />
-      ))}
+      {workProjects.map((project, index) => {
+        const videoOrder = VIDEO_ORDER_BY_CARD_ID.get(project.dataNodeId);
+
+        return (
+          <DesignCard
+            key={project.dataNodeId}
+            title={project.title}
+            subtitle={project.subtitle}
+            mediaSrc={project.mediaSrc}
+            links={project.links}
+            dataNodeId={project.dataNodeId}
+            interaction={project.interaction}
+            routeHref={getRouteHref(project)}
+            eagerVideo={index === 0}
+            videoOrder={videoOrder}
+            canLoadVideo={videoOrder === undefined || videoOrder < unlockedVideoCount}
+            onVideoReady={handleVideoReady}
+            supportsHover={supportsHover}
+            isMobileActive={activeMobileCardId === project.dataNodeId}
+            setCardElement={(node) => setCardElement(project.dataNodeId, node)}
+          />
+        );
+      })}
     </div>
   );
 }

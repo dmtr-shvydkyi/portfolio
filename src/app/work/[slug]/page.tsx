@@ -118,8 +118,8 @@ function LuminarCasePage({ project }: { project: WorkProject }) {
             <BlurRevealImage
               src={src}
               alt={`Luminar Collage section ${index + 1}`}
-              sizes="(max-width: 1024px) calc(100vw - 16px), 944px"
-              quality={90}
+              sizes="(max-width: 800px) calc(100vw - 16px), 800px"
+              quality={85}
               blurDataURL={blurDataMap[src]}
             />
           </div>

@@ -1,13 +1,61 @@
 'use client';
 
+import dynamic from 'next/dynamic';
+import { useEffect, useState } from 'react';
 import LogoMain from './LogoMain';
 import Time from './Time';
 import RunningNews from './RunningNews';
 import Link from './Link';
 import { usePageTransition } from '@/hooks/usePageTransition';
 
+const INTRO_HOLD_MS = 300;
+const INTRO_FADE_MS = 200;
+const GAME_REVEAL_DELAY_MS = 16;
+
+const loadBreakout404 = () => import('./Breakout404');
+
+const Breakout404 = dynamic(loadBreakout404, {
+  ssr: false,
+  loading: () => null,
+});
+
+function StaticNotFound() {
+  return (
+    <div className="basis-0 box-border content-stretch flex flex-col gap-[8px] grow items-center justify-center min-h-px min-w-px overflow-x-clip overflow-y-auto p-[8px] relative shrink-0 w-full">
+      <p className="font-mono font-bold leading-none relative shrink-0 text-[120px] text-[rgba(255,255,255,0.08)] text-nowrap uppercase whitespace-pre md:leading-[220px] md:text-[200px]">
+        404
+      </p>
+    </div>
+  );
+}
+
 export default function NotFound() {
   const { navigate } = usePageTransition();
+  const [isIntroVisible, setIsIntroVisible] = useState(true);
+  const [isGameMounted, setIsGameMounted] = useState(false);
+  const [isGameVisible, setIsGameVisible] = useState(false);
+
+  useEffect(() => {
+    void loadBreakout404();
+
+    const fadeIntroTimer = window.setTimeout(() => {
+      setIsIntroVisible(false);
+    }, INTRO_HOLD_MS);
+
+    const mountGameTimer = window.setTimeout(() => {
+      setIsGameMounted(true);
+    }, INTRO_HOLD_MS + INTRO_FADE_MS);
+
+    const revealGameTimer = window.setTimeout(() => {
+      setIsGameVisible(true);
+    }, INTRO_HOLD_MS + INTRO_FADE_MS + GAME_REVEAL_DELAY_MS);
+
+    return () => {
+      window.clearTimeout(fadeIntroTimer);
+      window.clearTimeout(mountGameTimer);
+      window.clearTimeout(revealGameTimer);
+    };
+  }, []);
 
   return (
     <div
@@ -49,22 +97,22 @@ export default function NotFound() {
         </div>
       </div>
       <div className="basis-0 bg-[#0d0d0d] content-stretch flex flex-col grow items-center min-h-0 min-w-px overflow-clip relative shrink-0 w-full md:[grid-area:1_/_2_/_auto_/_span_3] md:h-full md:min-h-px" data-name="right-stack" data-node-id="633:1956">
-        <div className="basis-0 box-border content-stretch flex flex-col gap-[8px] grow items-center justify-center min-h-px min-w-px overflow-x-clip overflow-y-auto p-[8px] relative shrink-0 w-full" data-name="wrap" data-node-id="633:1957">
-          <p className="font-mono font-bold leading-none relative shrink-0 text-[120px] text-[rgba(255,255,255,0.08)] text-nowrap uppercase whitespace-pre md:leading-[220px] md:text-[200px]" data-node-id="633:2058">
-            404
-          </p>
-          <div className="content-stretch flex flex-col gap-[16px] items-center max-w-[400px] relative shrink-0 w-full" data-name="v-stack" data-node-id="633:2059">
-            <div className="content-stretch flex gap-[8px] items-center justify-center relative shrink-0" data-name="link" data-node-id="633:2061">
-              <Link 
-                theme="dark" 
-                onClick={() => navigate('/#work', 'back')}
-                className="[text-underline-offset:25%] decoration-solid font-mono font-semibold leading-[16px] relative shrink-0 text-[12px] text-[rgba(255,255,255,0.32)] text-nowrap tracking-[0.24px] underline uppercase whitespace-pre"
-              >
-                go home
-              </Link>
-            </div>
-          </div>
+        <div
+          className={`absolute inset-0 z-10 flex transition-opacity duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:duration-100 ${isIntroVisible ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
+          data-404-intro
+          aria-hidden={!isIntroVisible}
+        >
+          <StaticNotFound />
         </div>
+        {isGameMounted ? (
+          <div
+            className={`absolute inset-0 flex transition-opacity duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:duration-100 ${isGameVisible ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
+            data-404-game
+            aria-hidden={!isGameVisible}
+          >
+            <Breakout404 />
+          </div>
+        ) : null}
       </div>
     </div>
   );
