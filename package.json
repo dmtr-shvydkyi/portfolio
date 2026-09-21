@@ -11,7 +11,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "video:assets": "node scripts/generate-video-assets.mjs"
+    "video:assets": "node scripts/generate-video-assets.mjs",
+    "images:webp": "node scripts/generate-work-webp.mjs"
   },
   "dependencies": {
     "@vercel/analytics": "^1.5.0",

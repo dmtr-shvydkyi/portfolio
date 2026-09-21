@@ -33,7 +33,7 @@ interface DesignCardProps {
 const BLUR_DATA_URL =
   'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZ2h0PSIxMyIgdmlld0JveD0iMCAwIDIwIDEzIj48cmVjdCB3aWR0aD0iMjAiIGhlaWdodD0iMTMiIGZpbGw9IiMxMzEzMTMiLz48L3N2Zz4=';
 const WORK_MEDIA_SIZES = '(max-width: 767px) calc(100vw - 16px), 75vw';
-const WORK_IMAGE_QUALITY = 75;
+const WORK_IMAGE_QUALITY = 85;
 const HOME_SCROLL_TOP_KEY = 'portfolio-home-scroll-top';
 const MOBILE_CARD_INSET = 8;
 const MOBILE_METADATA_GAP = 8;

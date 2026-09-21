@@ -181,7 +181,7 @@ Behavior:
 - On touch devices, only the active card may load and play. Desktop cards can preload metadata within 200px of the scroll viewport and play once at least 15% visible.
 - Video loading is independent per card, with no dependency on another video's transition or success. Load errors and autoplay denial leave the real first-frame poster visible.
 - Viewports up to 767px use a 960px-wide, 30fps H.264 mobile asset. The source is selected once at mount to prevent restarting clips during resize. Desktop keeps the original video.
-- Work images use quality 75; case-study images retain quality 85. Both use a visible independent blur placeholder and a 150ms image reveal. Case-study `sizes` follows actual content width (viewport minus 16px on mobile; 75vw minus 16px on desktop).
+- Work and case-study raster images use generated WebP source assets at quality 90; Work cards render at quality 85 and case-study images at quality 90. The original JPG files remain as source fallbacks. Both use a visible independent blur placeholder and a 150ms image reveal. Case-study `sizes` follows actual content width (viewport minus 16px on mobile; 75vw minus 16px on desktop).
 
 Content source:
 - Card data, mobile video paths, and first-frame poster paths are defined in `src/data/workProjects.ts`.
@@ -389,7 +389,7 @@ Core style traits:
 Notable static assets (examples):
 - `/public/og.jpg` - social preview image
 - `/public/logo-lol.png` - logo
-- `/public/*.mp4|*.jpg` - work media cards
+- `/public/*.mp4|*.jpg|*.webp` - work media cards
 - `/public/eat.mp3`, `/public/dead.mp3` - game sounds
 
 ## 11) SEO, PWA, and Crawling
@@ -452,6 +452,10 @@ Technical improvement opportunities:
 - Route navigation starts immediately with the old page still interactive during loading; the destination gets a cancellable 160ms opacity reveal. No exit timer or pointer-event lock is applied.
 - Shortened nearby section scrolling to 260ms, made long jumps and keyboard navigation immediate, and allowed user gestures to cancel scrolling.
 - Scope excludes deferred Snake mounting, gameplay changes, global reduced-motion changes, button transition refactoring, backdrop-filter tuning, and metrics activation.
+
+### 2026-09-21
+- Checked the full Git history for pre-compression versions of the Work images. The current JPGs were first added in `6ef0d0f`; no higher-resolution source for `mobile-min.jpg` or the other static cards exists in the repository history.
+- Added `npm run images:webp` and switched static Work/case-study media to quality-90 WebP source assets. Work cards render at quality 85 and case-study images at quality 90, avoiding an additional low-quality JPEG pass while keeping mobile payloads controlled; true detail recovery still requires the original design exports.
 
 ### 2026-03-01
 - Refactored home route from absolute tab-swapped panels to one anchored long-form landing.

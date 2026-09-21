@@ -82,11 +82,11 @@ const luminarCollageCaseStudy: WorkProjectCaseStudy = {
     }
   ],
   sectionMedia: [
-    '/case-studies/luminar-collage/section-1.jpg',
-    '/case-studies/luminar-collage/section-2.jpg',
-    '/case-studies/luminar-collage/section-3.jpg',
-    '/case-studies/luminar-collage/section-4.jpg',
-    '/case-studies/luminar-collage/section-5.jpg'
+    '/case-studies/luminar-collage/section-1.webp',
+    '/case-studies/luminar-collage/section-2.webp',
+    '/case-studies/luminar-collage/section-3.webp',
+    '/case-studies/luminar-collage/section-4.webp',
+    '/case-studies/luminar-collage/section-5.webp'
   ]
 };
 
@@ -137,21 +137,21 @@ export const workProjects: WorkProject[] = [
     dataNodeId: 'card-5',
     title: 'Luminar Assistant',
     subtitle: 'Feature',
-    mediaSrc: '/assistant-min.jpg',
+    mediaSrc: '/assistant-min.webp',
     interaction: 'linksOnly'
   },
   {
     dataNodeId: 'card-6',
     title: 'Luminar Spaces',
     subtitle: 'Feature',
-    mediaSrc: '/web-pages-min.jpg',
+    mediaSrc: '/web-pages-min.webp',
     interaction: 'linksOnly'
   },
   {
     dataNodeId: 'card-7',
     title: 'AI Bookshelf',
     subtitle: 'Concept',
-    mediaSrc: '/bookshelf-ai-min.jpg',
+    mediaSrc: '/bookshelf-ai-min.webp',
     links: [
       {
         text: 'Figma Community',
@@ -164,7 +164,7 @@ export const workProjects: WorkProject[] = [
     dataNodeId: 'card-8',
     title: 'Luminar Mobile',
     subtitle: 'Widgets / UI',
-    mediaSrc: '/mobile-min.jpg',
+    mediaSrc: '/mobile-min.webp',
     links: [{ text: 'Google Play', url: 'https://play.google.com/store/apps/details?id=com.skylum.luminar' }],
     interaction: 'linksOnly'
   },
@@ -172,21 +172,21 @@ export const workProjects: WorkProject[] = [
     dataNodeId: 'card-9',
     title: 'Book → Video',
     subtitle: 'Concept',
-    mediaSrc: '/video-ai-min.jpg',
+    mediaSrc: '/video-ai-min.webp',
     interaction: 'linksOnly'
   },
   {
     dataNodeId: 'card-10',
     title: 'Taxi App',
     subtitle: 'Concept',
-    mediaSrc: '/taxi-app-min.jpg',
+    mediaSrc: '/taxi-app-min.webp',
     interaction: 'linksOnly'
   },
   {
     dataNodeId: 'card-11',
     title: 'Task Tracker',
     subtitle: 'Concept',
-    mediaSrc: '/task-master-min.jpg',
+    mediaSrc: '/task-master-min.webp',
     interaction: 'linksOnly'
   }
 ];
