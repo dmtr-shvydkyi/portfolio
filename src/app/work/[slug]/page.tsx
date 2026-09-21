@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation';
 import CaseStudyHeaderActions from '@/components/CaseStudyHeaderActions';
 import CaseStudyHeroTitle from '@/components/CaseStudyHeroTitle';
 import CaseStudyHeroMedia from '@/components/CaseStudyHeroMedia';
-import BlurRevealImage from '@/components/BlurRevealImage';
+import WorkImage from '@/components/WorkImage';
 import Link from '@/components/Link';
 import CaseStudySetup from '@/components/CaseStudySetup';
 import { getWorkProjectBySlug, workProjectSlugs, type WorkProject, type WorkProjectLink } from '@/data/workProjects';
@@ -117,12 +117,10 @@ function LuminarCasePage({ project }: { project: WorkProject }) {
 
         {caseStudy.sectionMedia.map((src, index) => (
           <div key={src} className="relative aspect-[800/540] shrink-0 w-full">
-            <BlurRevealImage
+            <WorkImage
               src={src}
               alt={`Luminar Collage section ${index + 1}`}
               sizes="(max-width: 767px) calc(100vw - 16px), calc(75vw - 16px)"
-              quality={90}
-              blurDataURL={blurDataMap[src]}
             />
           </div>
         ))}

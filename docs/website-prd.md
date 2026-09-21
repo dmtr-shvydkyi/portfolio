@@ -181,7 +181,8 @@ Behavior:
 - On touch devices, only the active card may load and play. Desktop cards can preload metadata within 200px of the scroll viewport and play once at least 15% visible.
 - Video loading is independent per card, with no dependency on another video's transition or success. Load errors and autoplay denial leave the real first-frame poster visible.
 - Viewports up to 767px use a 960px-wide, 30fps H.264 mobile asset. The source is selected once at mount to prevent restarting clips during resize. Desktop keeps the original video.
-- Work and case-study raster images use generated WebP source assets at quality 90; Work cards render at quality 85 and case-study images at quality 90. The original JPG files remain as source fallbacks. Both use a visible independent blur placeholder and a 150ms image reveal. Case-study `sizes` follows actual content width (viewport minus 16px on mobile; 75vw minus 16px on desktop).
+- Work and case-study images use responsive WebPs encoded directly from the original JPGs at quality 90. `npm run images:webp` generates 640px, 1200px, 1920px and original-width variants in `public/work-images/`, plus `src/data/workImageSources.ts`. Content-hashed URLs have immutable caching. Images on the current route load eagerly through native `srcSet`, without request-time image optimization, blur placeholders or a React-controlled reveal. Case-study `sizes` follows actual content width (viewport minus 16px on mobile; 75vw minus 16px on desktop).
+- All three small, pre-generated video first-frame posters load eagerly as static WebPs; actual video loading and playback remain visibility-controlled.
 
 Content source:
 - Card data, mobile video paths, and first-frame poster paths are defined in `src/data/workProjects.ts`.
@@ -454,6 +455,7 @@ Technical improvement opportunities:
 - Scope excludes deferred Snake mounting, gameplay changes, global reduced-motion changes, button transition refactoring, backdrop-filter tuning, and metrics activation.
 
 ### 2026-09-21
+- Reproduced blurred Work blocks with fast scrolling on a cold Retina-desktop visit. Replaced lazy, opacity-gated Work/case-study images with eagerly loaded static responsive WebPs; bypassed request-time optimization for first-frame video posters. Added content-hashed assets and immutable caching to avoid repeat downloads.
 - Checked the full Git history for pre-compression versions of the Work images. The current JPGs were first added in `6ef0d0f`; no higher-resolution source for `mobile-min.jpg` or the other static cards exists in the repository history.
 - Added `npm run images:webp` and switched static Work/case-study media to quality-90 WebP source assets. Work cards render at quality 85 and case-study images at quality 90, avoiding an additional low-quality JPEG pass while keeping mobile payloads controlled; true detail recovery still requires the original design exports.
 

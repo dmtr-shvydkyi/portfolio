@@ -122,8 +122,9 @@ export default function ViewportVideo({
         alt=""
         fill
         sizes={sizes}
-        quality={85}
+        unoptimized
         priority={eager}
+        loading="eager"
         className={`absolute inset-0 size-full ${className}`}
       />
       <video

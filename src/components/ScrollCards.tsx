@@ -1,11 +1,10 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
-import BlurRevealImage from './BlurRevealImage';
+import WorkImage from './WorkImage';
 import ViewportVideo from './ViewportVideo';
 import { useRouter } from 'next/navigation';
 import { workProjects, type WorkProject, type WorkProjectInteraction, type WorkProjectLink } from '@/data/workProjects';
-import { blurDataMap } from '@/data/blurData';
 import Link from './Link';
 import { useKeyboardSound } from '@/hooks/useKeyboardSound';
 import { usePageTransition } from '@/hooks/usePageTransition';
@@ -30,10 +29,7 @@ interface DesignCardProps {
   setCardElement: (node: HTMLDivElement | null) => void;
 }
 
-const BLUR_DATA_URL =
-  'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZ2h0PSIxMyIgdmlld0JveD0iMCAwIDIwIDEzIj48cmVjdCB3aWR0aD0iMjAiIGhlaWdodD0iMTMiIGZpbGw9IiMxMzEzMTMiLz48L3N2Zz4=';
 const WORK_MEDIA_SIZES = '(max-width: 767px) calc(100vw - 16px), 75vw';
-const WORK_IMAGE_QUALITY = 85;
 const HOME_SCROLL_TOP_KEY = 'portfolio-home-scroll-top';
 const MOBILE_CARD_INSET = 8;
 const MOBILE_METADATA_GAP = 8;
@@ -246,12 +242,10 @@ function DesignCard({
             playbackEnabled={supportsHover || isMobileActive}
           />
         ) : (
-          <BlurRevealImage
+          <WorkImage
             alt={title}
             src={mediaSrc}
             sizes={WORK_MEDIA_SIZES}
-            quality={WORK_IMAGE_QUALITY}
-            blurDataURL={blurDataMap[mediaSrc] ?? BLUR_DATA_URL}
           />
         )}
       </div>

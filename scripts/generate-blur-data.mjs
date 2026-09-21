@@ -28,6 +28,7 @@ async function findImages(dir, baseDir = dir) {
     const fullPath = join(dir, entry.name);
 
     if (entry.isDirectory()) {
+      if (entry.name === 'work-images') continue;
       results.push(...await findImages(fullPath, baseDir));
       continue;
     }
