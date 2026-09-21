@@ -1,37 +1,17 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { Children, Fragment, cloneElement, isValidElement, useEffect, useMemo, useRef } from 'react';
+import { Children, Fragment, cloneElement, isValidElement, useEffect, useMemo, useRef, useState } from 'react';
 import Link from './Link';
 
 type GlitchCharRecord = {
   el: HTMLElement;
-  originalChar: string;
-  renderChar: string;
-  isWhitespace: boolean;
-  centerX: number;
-  centerY: number;
-  glitchUntil: number;
-};
-
-type TrailPoint = {
+  original: string;
+  current: string;
   x: number;
   y: number;
-  t: number;
+  until: number;
 };
-
-function findNearestScrollableAncestor(start: HTMLElement): HTMLElement | null {
-  let current: HTMLElement | null = start.parentElement;
-  while (current) {
-    const style = window.getComputedStyle(current);
-    const overflowY = style.overflowY;
-    const isScrollableOverflow = overflowY === 'auto' || overflowY === 'scroll';
-    const isScrollable = isScrollableOverflow && current.scrollHeight > current.clientHeight + 1;
-    if (isScrollable) return current;
-    current = current.parentElement;
-  }
-  return null;
-}
 
 function wrapNode(node: ReactNode, path: string): ReactNode {
   if (node === null || node === undefined || typeof node === 'boolean') return node;
@@ -122,266 +102,135 @@ export default function GlitchScramble({
   glitchHoldMs?: number;
   symbols?: string;
 }) {
-  const rootRef = useRef<HTMLDivElement | null>(null);
-  const pointerRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
-  const hoveringRef = useRef(false);
-  const activeRef = useRef(false);
-  const pointsRef = useRef<TrailPoint[]>([]);
-  const lastMoveRef = useRef<{ x: number; y: number; t: number } | null>(null);
-  const rafRef = useRef<number | null>(null);
-  const lastFrameRef = useRef(0);
-  const reducedMotionRef = useRef(false);
-  const recordsRef = useRef<GlitchCharRecord[]>([]);
-  const scrollParentRef = useRef<HTMLElement | null>(null);
-  const resizeObserverRef = useRef<ResizeObserver | null>(null);
-  const scheduledCentersRef = useRef(false);
-
-  const wrappedChildren = useMemo(() => wrapNode(children, 'root'), [children]);
-
-  const restoreAll = () => {
-    for (const record of recordsRef.current) {
-      record.el.textContent = record.renderChar;
-    }
-  };
-
-  const stop = () => {
-    hoveringRef.current = false;
-    activeRef.current = false;
-    if (rafRef.current) {
-      cancelAnimationFrame(rafRef.current);
-      rafRef.current = null;
-    }
-    restoreAll();
-  };
-
-  const stopBurst = () => {
-    activeRef.current = false;
-    if (rafRef.current) {
-      cancelAnimationFrame(rafRef.current);
-      rafRef.current = null;
-    }
-    restoreAll();
-  };
-
-  const updateRecords = () => {
-    const root = rootRef.current;
-    if (!root) return;
-    const nodes = Array.from(root.querySelectorAll<HTMLElement>('[data-glitch-char="1"]'));
-    recordsRef.current = nodes.map(el => {
-      const codeStr = el.dataset.glitchCode;
-      const code = codeStr ? Number.parseInt(codeStr, 10) : NaN;
-      const originalChar = Number.isFinite(code) ? String.fromCodePoint(code) : (el.textContent ?? '');
-      const isWhitespace = originalChar === ' ';
-      const renderChar = isWhitespace ? '\u00A0' : originalChar;
-      el.textContent = renderChar;
-      return { el, originalChar, renderChar, isWhitespace, centerX: 0, centerY: 0, glitchUntil: 0 };
-    });
-  };
-
-  const areRecordsCurrent = () => {
-    const root = rootRef.current;
-    if (!root) return false;
-    if (recordsRef.current.length === 0) return false;
-
-    for (const record of recordsRef.current) {
-      if (!root.contains(record.el) || record.el.dataset.glitchChar !== '1') return false;
-
-      const codeStr = record.el.dataset.glitchCode;
-      const code = codeStr ? Number.parseInt(codeStr, 10) : NaN;
-      const currentChar = Number.isFinite(code) ? String.fromCodePoint(code) : (record.el.textContent ?? '');
-      if (currentChar !== record.originalChar) return false;
-    }
-
-    return true;
-  };
-
-  const ensureRecordsCurrent = () => {
-    if (!areRecordsCurrent()) updateRecords();
-  };
-
-  const updateCenters = () => {
-    for (const record of recordsRef.current) {
-      const rect = record.el.getBoundingClientRect();
-      record.centerX = rect.left + rect.width / 2;
-      record.centerY = rect.top + rect.height / 2;
-    }
-  };
-
-  const scheduleUpdateCenters = () => {
-    if (scheduledCentersRef.current) return;
-    scheduledCentersRef.current = true;
-    requestAnimationFrame(() => {
-      scheduledCentersRef.current = false;
-      updateCenters();
-    });
-  };
-
-  const randomSymbol = () => {
-    if (!symbols || symbols.length === 0) return '';
-    const i = Math.floor(Math.random() * symbols.length);
-    return symbols[i] ?? '';
-  };
-
-  const tick = (now: number) => {
-    if (!hoveringRef.current && !activeRef.current) return;
-
-    const root = rootRef.current;
-    if (!root) {
-      stop();
-      return;
-    }
-
-    if (root.closest('.pointer-events-none')) {
-      stop();
-      return;
-    }
-
-    const frameIntervalMs = 40;
-    if (now - lastFrameRef.current < frameIntervalMs) {
-      rafRef.current = requestAnimationFrame(tick);
-      return;
-    }
-    lastFrameRef.current = now;
-
-    const tailFactor = Math.max(0.1, tailRadiusFactor);
-    const rx = Math.max(1, radius * tailFactor);
-    const ry = Math.max(1, radius * Math.max(0.05, radiusYFactor) * tailFactor);
-    const trailMs = Math.max(0, trailDurationMs);
-    const holdMs = Math.max(0, glitchHoldMs);
-
-    if (trailMs === 0) {
-      pointsRef.current = [];
-    } else {
-      pointsRef.current = pointsRef.current.filter(point => now - point.t <= trailMs);
-    }
-
-    let hasActiveGlitch = false;
-    for (const record of recordsRef.current) {
-      if (record.isWhitespace) continue;
-      let maxIntensity = 0;
-
-      for (const point of pointsRef.current) {
-        const age = now - point.t;
-        const ageFactor = trailMs > 0 ? Math.max(0, 1 - age / trailMs) : 0;
-        if (ageFactor <= 0) continue;
-        const dx = point.x - record.centerX;
-        const dy = point.y - record.centerY;
-        const norm = Math.sqrt((dx * dx) / (rx * rx) + (dy * dy) / (ry * ry));
-        if (norm < 1) {
-          const rawIntensity = Math.max(0, 1 - norm) * ageFactor;
-          const intensity = rawIntensity ** 1.3;
-          if (intensity > maxIntensity) maxIntensity = intensity;
-        }
-      }
-
-      if (maxIntensity > 0) {
-        const until = now + holdMs;
-        if (until > record.glitchUntil) record.glitchUntil = until;
-      }
-
-      if (record.glitchUntil > now) {
-        hasActiveGlitch = true;
-        const remaining = record.glitchUntil - now;
-        const fade = holdMs > 0 ? Math.min(1, remaining / holdMs) : 0;
-        const p = fade * fade;
-        record.el.textContent = Math.random() < p ? randomSymbol() : record.renderChar;
-      } else {
-        record.el.textContent = record.renderChar;
-      }
-    }
-
-    const hasActiveTrail = pointsRef.current.length > 0;
-    activeRef.current = hasActiveTrail || hasActiveGlitch;
-
-    if (activeRef.current || hoveringRef.current) {
-      rafRef.current = requestAnimationFrame(tick);
-    } else {
-      stopBurst();
-    }
-  };
-
-  const startLoop = () => {
-    if (reducedMotionRef.current) return;
-    activeRef.current = true;
-    if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    lastFrameRef.current = 0;
-    rafRef.current = requestAnimationFrame(tick);
-  };
+  const rootRef = useRef<HTMLDivElement>(null);
+  const [enabled, setEnabled] = useState(false);
+  const wrappedChildren = useMemo(
+    () => enabled ? wrapNode(children, 'root') : children,
+    [children, enabled]
+  );
 
   useEffect(() => {
-    reducedMotionRef.current = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
-
     const root = rootRef.current;
     if (!root) return;
-
-    updateRecords();
-    updateCenters();
-
-    scrollParentRef.current = findNearestScrollableAncestor(root);
-
-    const handleScroll = () => scheduleUpdateCenters();
-    const handleResize = () => scheduleUpdateCenters();
-
-    if (scrollParentRef.current) {
-      scrollParentRef.current.addEventListener('scroll', handleScroll, { passive: true });
-    }
-    window.addEventListener('resize', handleResize);
-
-    resizeObserverRef.current = new ResizeObserver(() => scheduleUpdateCenters());
-    resizeObserverRef.current.observe(root);
-
+    const pointer = window.matchMedia('(hover: hover) and (pointer: fine)');
+    const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    let visible = false;
+    const update = () => setEnabled(visible && pointer.matches && !motion.matches);
+    const observer = new IntersectionObserver(([entry]) => {
+      visible = entry.isIntersecting;
+      update();
+    });
+    observer.observe(root);
+    pointer.addEventListener('change', update);
+    motion.addEventListener('change', update);
     return () => {
-      stop();
-      if (scrollParentRef.current) {
-        scrollParentRef.current.removeEventListener('scroll', handleScroll);
-      }
-      window.removeEventListener('resize', handleResize);
-      resizeObserverRef.current?.disconnect();
-      resizeObserverRef.current = null;
-      scrollParentRef.current = null;
+      observer.disconnect();
+      pointer.removeEventListener('change', update);
+      motion.removeEventListener('change', update);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  return (
-    <div
-      ref={rootRef}
-      className={className}
-      onPointerEnter={e => {
-        if (reducedMotionRef.current) return;
-        hoveringRef.current = true;
-        pointerRef.current = { x: e.clientX, y: e.clientY };
-        ensureRecordsCurrent();
-        updateCenters();
-        startLoop();
-      }}
-      onPointerMove={e => {
-        if (!hoveringRef.current || reducedMotionRef.current) return;
-        const now = performance.now();
-        const { clientX, clientY } = e;
-        pointerRef.current = { x: clientX, y: clientY };
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!enabled || !root) return;
+    const records: GlitchCharRecord[] = Array.from(
+      root.querySelectorAll<HTMLElement>('[data-glitch-char]')
+    ).map(el => {
+      const original = String.fromCodePoint(Number(el.dataset.glitchCode));
+      return { el, original, current: original, x: 0, y: 0, until: 0 };
+    });
+    const active = new Set<GlitchCharRecord>();
+    let frame: number | null = null;
+    let lastFrame = 0;
+    let centersDirty = true;
+    let lastPoint: { x: number; y: number } | null = null;
+    const rx = Math.max(1, radius * Math.max(0.1, tailRadiusFactor));
+    const ry = Math.max(1, rx * Math.max(0.05, radiusYFactor));
 
-        const lastMove = lastMoveRef.current;
-        const dx = lastMove ? clientX - lastMove.x : Infinity;
-        const dy = lastMove ? clientY - lastMove.y : Infinity;
-        const dist = Math.hypot(dx, dy);
-        const dt = lastMove ? now - lastMove.t : Infinity;
-        if (dist > 2 || dt > 24) {
-          pointsRef.current.push({ x: clientX, y: clientY, t: now });
-          lastMoveRef.current = { x: clientX, y: clientY, t: now };
-          if (!activeRef.current) {
-            ensureRecordsCurrent();
-            updateCenters();
-            startLoop();
+    const write = (record: GlitchCharRecord, value: string) => {
+      if (record.current === value) return;
+      record.el.textContent = value;
+      record.current = value;
+    };
+    const stop = () => {
+      if (frame !== null) cancelAnimationFrame(frame);
+      frame = null;
+      for (const record of active) write(record, record.original);
+      active.clear();
+      lastPoint = null;
+    };
+    const invalidate = () => {
+      centersDirty = true;
+      stop();
+    };
+    const measure = () => {
+      // Read geometry once before any text mutations, never on every scroll.
+      for (const record of records) {
+        const rect = record.el.getBoundingClientRect();
+        record.x = rect.left + rect.width / 2;
+        record.y = rect.top + rect.height / 2;
+      }
+      centersDirty = false;
+    };
+    const tick = (now: number) => {
+      frame = null;
+      if (now - lastFrame >= 40) {
+        lastFrame = now;
+        for (const record of active) {
+          if (now >= record.until) {
+            write(record, record.original);
+            active.delete(record);
+            continue;
           }
+          const fade = glitchHoldMs > 0 ? Math.min(1, (record.until - now) / glitchHoldMs) : 0;
+          const value = symbols && Math.random() < fade * fade
+            ? symbols[Math.floor(Math.random() * symbols.length)]
+            : record.original;
+          write(record, value);
         }
-      }}
-      onPointerLeave={() => {
-        hoveringRef.current = false;
-        lastMoveRef.current = null;
-      }}
-    >
-      {wrappedChildren}
-    </div>
-  );
+      }
+      if (active.size) frame = requestAnimationFrame(tick);
+    };
+    const enter = () => { centersDirty = true; lastPoint = null; };
+    const move = (event: PointerEvent) => {
+      if (event.pointerType === 'touch' || document.hidden) return;
+      const x = event.clientX;
+      const y = event.clientY;
+      if (lastPoint && Math.hypot(x - lastPoint.x, y - lastPoint.y) < 2) return;
+      if (centersDirty) measure();
+      lastPoint = { x, y };
+      const until = performance.now() + Math.max(0, trailDurationMs) + Math.max(0, glitchHoldMs);
+      for (const record of records) {
+        const dx = (x - record.x) / rx;
+        const dy = (y - record.y) / ry;
+        if (dx * dx + dy * dy >= 1) continue;
+        record.until = until;
+        active.add(record);
+      }
+      if (active.size && frame === null) frame = requestAnimationFrame(tick);
+    };
+    const leave = () => { lastPoint = null; };
+    const visibility = () => { if (document.hidden) invalidate(); };
+    const resizeObserver = new ResizeObserver(invalidate);
+    resizeObserver.observe(root);
+    root.addEventListener('pointerenter', enter);
+    root.addEventListener('pointermove', move);
+    root.addEventListener('pointerleave', leave);
+    // Capture nested scroll events; invalidation does no geometry reads.
+    document.addEventListener('scroll', invalidate, { capture: true, passive: true });
+    document.addEventListener('visibilitychange', visibility);
+    window.addEventListener('resize', invalidate);
+    return () => {
+      stop();
+      resizeObserver.disconnect();
+      root.removeEventListener('pointerenter', enter);
+      root.removeEventListener('pointermove', move);
+      root.removeEventListener('pointerleave', leave);
+      document.removeEventListener('scroll', invalidate, true);
+      document.removeEventListener('visibilitychange', visibility);
+      window.removeEventListener('resize', invalidate);
+    };
+  }, [enabled, wrappedChildren, radius, radiusYFactor, tailRadiusFactor, trailDurationMs, glitchHoldMs, symbols]);
+
+  return <div ref={rootRef} className={className}>{wrappedChildren}</div>;
 }

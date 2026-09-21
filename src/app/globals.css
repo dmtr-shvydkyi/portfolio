@@ -4,8 +4,8 @@
 :root {
   --background: #0d0d0d;
   --foreground: #171717;
-  --landing-scroll-duration: 620ms;
-  --route-transition-exit-duration: 160ms;
+  --landing-scroll-duration: 260ms;
+  --route-transition-exit-duration: 0ms;
   --route-transition-enter-duration: 160ms;
   --route-transition-exit-easing: cubic-bezier(0.16, 1, 0.3, 1);
   --route-transition-enter-easing: cubic-bezier(0.16, 1, 0.3, 1);

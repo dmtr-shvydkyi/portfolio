@@ -1,7 +1,8 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState, type CSSProperties, type TransitionEvent } from 'react';
-import Image from 'next/image';
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
+import BlurRevealImage from './BlurRevealImage';
+import ViewportVideo from './ViewportVideo';
 import { useRouter } from 'next/navigation';
 import { workProjects, type WorkProject, type WorkProjectInteraction, type WorkProjectLink } from '@/data/workProjects';
 import { blurDataMap } from '@/data/blurData';
@@ -17,14 +18,13 @@ interface DesignCardProps {
   title: string;
   subtitle?: string;
   mediaSrc: string;
+  mobileMediaSrc?: string;
+  posterSrc?: string;
   links?: WorkProjectLink[];
   dataNodeId: string;
   interaction: WorkProjectInteraction;
   routeHref?: string;
   eagerVideo?: boolean;
-  videoOrder?: number;
-  canLoadVideo?: boolean;
-  onVideoReady?: (videoOrder: number) => void;
   supportsHover: boolean;
   isMobileActive: boolean;
   setCardElement: (node: HTMLDivElement | null) => void;
@@ -33,12 +33,7 @@ interface DesignCardProps {
 const BLUR_DATA_URL =
   'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZ2h0PSIxMyIgdmlld0JveD0iMCAwIDIwIDEzIj48cmVjdCB3aWR0aD0iMjAiIGhlaWdodD0iMTMiIGZpbGw9IiMxMzEzMTMiLz48L3N2Zz4=';
 const WORK_MEDIA_SIZES = '(max-width: 767px) calc(100vw - 16px), 75vw';
-const WORK_IMAGE_QUALITY = 90;
-const VIDEO_ORDER_BY_CARD_ID = new Map(
-  workProjects
-    .filter(project => project.mediaSrc.endsWith('.mp4') || project.mediaSrc.endsWith('.mov'))
-    .map((project, index) => [project.dataNodeId, index])
-);
+const WORK_IMAGE_QUALITY = 75;
 const HOME_SCROLL_TOP_KEY = 'portfolio-home-scroll-top';
 const MOBILE_CARD_INSET = 8;
 const MOBILE_METADATA_GAP = 8;
@@ -95,14 +90,13 @@ function DesignCard({
   title,
   subtitle,
   mediaSrc,
+  mobileMediaSrc,
+  posterSrc,
   links,
   dataNodeId,
   interaction,
   routeHref,
   eagerVideo = false,
-  videoOrder,
-  canLoadVideo = true,
-  onVideoReady,
   supportsHover,
   isMobileActive,
   setCardElement,
@@ -111,11 +105,7 @@ function DesignCard({
   const [showMobileSubtitle, setShowMobileSubtitle] = useState(false);
   const [mobileTextMaxWidth, setMobileTextMaxWidth] = useState<number | null>(null);
   const isVideo = mediaSrc.endsWith('.mp4') || mediaSrc.endsWith('.mov');
-  const [isMediaLoaded, setIsMediaLoaded] = useState(false);
-  const [isNearViewport, setIsNearViewport] = useState(eagerVideo || !isVideo);
   const cardRef = useRef<HTMLDivElement | null>(null);
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const hasReportedVideoReadyRef = useRef(false);
   const mobileLinkRef = useRef<HTMLDivElement | null>(null);
   const titleMeasureRef = useRef<HTMLSpanElement | null>(null);
   const dividerMeasureRef = useRef<HTMLSpanElement | null>(null);
@@ -123,83 +113,13 @@ function DesignCard({
   const { navigate } = usePageTransition();
   const router = useRouter();
   const playSound = useKeyboardSound();
-  const videoType = mediaSrc.endsWith('.mov') ? 'video/quicktime' : 'video/mp4';
   const isRouteCard = interaction === 'route' && Boolean(routeHref);
   const firstLink = links?.[0];
-  const shouldLoadVideo = !isVideo || (canLoadVideo && isNearViewport);
-
-  useEffect(() => {
-    setIsMediaLoaded(false);
-    setIsNearViewport(eagerVideo || !isVideo);
-    hasReportedVideoReadyRef.current = false;
-  }, [eagerVideo, isVideo, mediaSrc]);
-
   useEffect(() => {
     if (!isRouteCard || !routeHref) return;
 
     router.prefetch(routeHref);
   }, [isRouteCard, routeHref, router]);
-
-  useEffect(() => {
-    if (!isVideo || eagerVideo || isNearViewport) return;
-    const card = cardRef.current;
-    if (!card) return;
-
-    if (typeof IntersectionObserver === 'undefined') {
-      setIsNearViewport(true);
-      return;
-    }
-
-    const observer = new IntersectionObserver(
-      entries => {
-        const [entry] = entries;
-        if (entry?.isIntersecting) {
-          setIsNearViewport(true);
-          observer.disconnect();
-        }
-      },
-      { rootMargin: '300px 0px' }
-    );
-
-    observer.observe(card);
-    return () => observer.disconnect();
-  }, [eagerVideo, isNearViewport, isVideo]);
-
-  useEffect(() => {
-    if (!isVideo || !shouldLoadVideo) return;
-    const video = videoRef.current;
-    if (!video) return;
-
-    const playPromise = video.play();
-    if (playPromise && typeof playPromise.catch === 'function') {
-      playPromise.catch(() => {});
-    }
-  }, [isVideo, shouldLoadVideo]);
-
-  const handleVideoReady = useCallback(() => {
-    setIsMediaLoaded(true);
-  }, []);
-
-  const handleVideoRevealComplete = useCallback((event: TransitionEvent<HTMLVideoElement>) => {
-    if (
-      event.propertyName !== 'opacity'
-      || !isMediaLoaded
-      || hasReportedVideoReadyRef.current
-      || videoOrder === undefined
-    ) return;
-
-    hasReportedVideoReadyRef.current = true;
-    onVideoReady?.(videoOrder);
-  }, [isMediaLoaded, onVideoReady, videoOrder]);
-
-  useEffect(() => {
-    if (!isVideo || !shouldLoadVideo) return;
-    const video = videoRef.current;
-
-    if (video && video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
-      handleVideoReady();
-    }
-  }, [handleVideoReady, isVideo, shouldLoadVideo]);
 
   useEffect(() => {
     if (!subtitle) {
@@ -316,33 +236,22 @@ function DesignCard({
     >
       <div aria-hidden="true" className="absolute inset-0 pointer-events-none">
         <div className="absolute inset-0 bg-[#0f0f0f]" />
-        {isVideo ? (
-          <video
-            ref={videoRef}
-            className={`absolute inset-0 max-w-none object-50%-50% object-cover size-full transition-opacity duration-500 ease-out ${isMediaLoaded ? 'opacity-100' : 'opacity-0'}`}
-            autoPlay={shouldLoadVideo}
-            loop
-            muted
-            playsInline
-            preload={shouldLoadVideo ? (eagerVideo ? 'auto' : 'metadata') : 'none'}
-            onLoadedData={handleVideoReady}
-            onCanPlay={handleVideoReady}
-            onPlaying={handleVideoReady}
-            onTransitionEnd={handleVideoRevealComplete}
-          >
-            {shouldLoadVideo ? <source src={mediaSrc} type={videoType} /> : null}
-          </video>
-        ) : (
-          <Image
-            alt={title}
-            className={`absolute inset-0 max-w-none object-50%-50% object-cover size-full transition-opacity duration-500 ease-out ${isMediaLoaded ? 'opacity-100' : 'opacity-0'}`}
+        {isVideo && posterSrc ? (
+          <ViewportVideo
             src={mediaSrc}
-            fill
+            mobileSrc={mobileMediaSrc}
+            posterSrc={posterSrc}
+            sizes={WORK_MEDIA_SIZES}
+            eager={eagerVideo}
+            playbackEnabled={supportsHover || isMobileActive}
+          />
+        ) : (
+          <BlurRevealImage
+            alt={title}
+            src={mediaSrc}
             sizes={WORK_MEDIA_SIZES}
             quality={WORK_IMAGE_QUALITY}
-            placeholder="blur"
             blurDataURL={blurDataMap[mediaSrc] ?? BLUR_DATA_URL}
-            onLoad={() => setIsMediaLoaded(true)}
           />
         )}
       </div>
@@ -480,13 +389,8 @@ function getRouteHref(project: WorkProject): string | undefined {
 export default function ScrollCards({ className }: ScrollCardsProps) {
   const [supportsHover, setSupportsHover] = useState(true);
   const [activeMobileCardId, setActiveMobileCardId] = useState<string | null>(null);
-  const [unlockedVideoCount, setUnlockedVideoCount] = useState(1);
   const listRef = useRef<HTMLDivElement | null>(null);
   const cardElementsRef = useRef(new Map<string, HTMLDivElement>());
-
-  const handleVideoReady = useCallback((videoOrder: number) => {
-    setUnlockedVideoCount(current => Math.max(current, videoOrder + 2));
-  }, []);
 
   useEffect(() => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
@@ -587,22 +491,19 @@ export default function ScrollCards({ className }: ScrollCardsProps) {
   return (
     <div ref={listRef} className={className} data-name="_scroll-cards" data-node-id="552:36229">
       {workProjects.map((project, index) => {
-        const videoOrder = VIDEO_ORDER_BY_CARD_ID.get(project.dataNodeId);
-
         return (
           <DesignCard
             key={project.dataNodeId}
             title={project.title}
             subtitle={project.subtitle}
             mediaSrc={project.mediaSrc}
+            mobileMediaSrc={project.mobileMediaSrc}
+            posterSrc={project.posterSrc}
             links={project.links}
             dataNodeId={project.dataNodeId}
             interaction={project.interaction}
             routeHref={getRouteHref(project)}
             eagerVideo={index === 0}
-            videoOrder={videoOrder}
-            canLoadVideo={videoOrder === undefined || videoOrder < unlockedVideoCount}
-            onVideoReady={handleVideoReady}
             supportsHover={supportsHover}
             isMobileActive={activeMobileCardId === project.dataNodeId}
             setCardElement={(node) => setCardElement(project.dataNodeId, node)}

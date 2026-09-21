@@ -19,31 +19,30 @@ const HOME_SCROLL_TOP_KEY = 'portfolio-home-scroll-top';
 const RESTORE_HOME_SCROLL_KEY = 'portfolio-restore-home-scroll';
 const TARGET_HOME_TAB_KEY = 'portfolio-home-target-tab';
 
-/** Spring-like ease-out with subtle overshoot for organic scroll feel */
-function springEaseOut(t: number): number {
-  const decay = Math.exp(-5.5 * t);
-  return 1 - decay * Math.cos(Math.PI * 0.45 * t);
+/** Fast ease-out for short section movements. */
+function scrollEaseOut(t: number): number {
+  return 1 - (1 - t) ** 3;
 }
 
 function getScrollDurationMs() {
-  if (typeof window === 'undefined') return 620;
+  if (typeof window === 'undefined') return 260;
   const rawValue = window
     .getComputedStyle(document.documentElement)
     .getPropertyValue('--landing-scroll-duration')
     .trim();
 
-  if (!rawValue) return 620;
+  if (!rawValue) return 260;
   if (rawValue.endsWith('ms')) {
     const parsed = Number.parseFloat(rawValue.slice(0, -2));
-    return Number.isFinite(parsed) ? parsed : 620;
+    return Number.isFinite(parsed) ? parsed : 260;
   }
   if (rawValue.endsWith('s')) {
     const parsed = Number.parseFloat(rawValue.slice(0, -1));
-    return Number.isFinite(parsed) ? parsed * 1000 : 620;
+    return Number.isFinite(parsed) ? parsed * 1000 : 260;
   }
 
   const parsed = Number.parseFloat(rawValue);
-  return Number.isFinite(parsed) ? parsed : 620;
+  return Number.isFinite(parsed) ? parsed : 260;
 }
 
 function getTabFromLocation(): TabId {
@@ -112,6 +111,19 @@ export default function Home() {
     isAnimatingRef.current = false;
   }, []);
 
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    container.addEventListener('wheel', cancelScrollAnimation, { passive: true });
+    container.addEventListener('touchstart', cancelScrollAnimation, { passive: true });
+    container.addEventListener('pointerdown', cancelScrollAnimation, { passive: true });
+    return () => {
+      container.removeEventListener('wheel', cancelScrollAnimation);
+      container.removeEventListener('touchstart', cancelScrollAnimation);
+      container.removeEventListener('pointerdown', cancelScrollAnimation);
+    };
+  }, [cancelScrollAnimation]);
+
   const getActiveTabFromScroll = useCallback((scrollTop: number) => {
     const container = scrollContainerRef.current;
     if (!container) return activeTabRef.current;
@@ -170,7 +182,7 @@ export default function Home() {
     setActiveTab(tab);
     cancelScrollAnimation();
 
-    if (!animated || prefersReducedMotion || Math.abs(delta) < 1) {
+    if (!animated || prefersReducedMotion || Math.abs(delta) < 1 || Math.abs(delta) > container.clientHeight * 1.5) {
       container.scrollTop = targetTop;
       return;
     }
@@ -182,7 +194,7 @@ export default function Home() {
     const step = (now: number) => {
       const elapsed = now - startTime;
       const progress = Math.min(elapsed / durationMs, 1);
-      const eased = springEaseOut(progress);
+      const eased = scrollEaseOut(progress);
       container.scrollTop = startTop + delta * eased;
 
       if (progress < 1) {
@@ -308,8 +320,8 @@ export default function Home() {
     updateUrlHash(activeTab, 'replace');
   }, [activeTab, updateUrlHash]);
 
-  const handleTabChange = useCallback((tab: TabId) => {
-    scrollToTab(tab, { animated: true, historyMode: 'push' });
+  const handleTabChange = useCallback((tab: TabId, animated = true) => {
+    scrollToTab(tab, { animated, historyMode: 'push' });
   }, [scrollToTab]);
 
   // Register tab change handler with the persistent shell
@@ -327,19 +339,19 @@ export default function Home() {
       switch (event.key) {
         case '1':
           playSound();
-          handleTabChange('work');
+          handleTabChange('work', false);
           break;
         case '2':
           playSound();
-          handleTabChange('info');
+          handleTabChange('info', false);
           break;
         case '3':
           playSound();
-          handleTabChange('play');
+          handleTabChange('play', false);
           break;
         case '4':
           playSound();
-          handleTabChange('resume');
+          handleTabChange('resume', false);
           break;
         case '5':
           playSound();
@@ -350,7 +362,7 @@ export default function Home() {
           playSound();
           const currentIndex = TAB_ORDER.indexOf(activeTabRef.current);
           const nextIndex = (currentIndex - 1 + TAB_ORDER.length) % TAB_ORDER.length;
-          handleTabChange(TAB_ORDER[nextIndex]);
+          handleTabChange(TAB_ORDER[nextIndex], false);
           break;
         }
         case 'ArrowRight': {
@@ -358,7 +370,7 @@ export default function Home() {
           playSound();
           const currentIndex = TAB_ORDER.indexOf(activeTabRef.current);
           const nextIndex = (currentIndex + 1) % TAB_ORDER.length;
-          handleTabChange(TAB_ORDER[nextIndex]);
+          handleTabChange(TAB_ORDER[nextIndex], false);
           break;
         }
         default:

@@ -22,7 +22,8 @@ export interface WorkProjectCaseStudy {
   title: string;
   iconSrc: string;
   heroVideoSrc: string;
-  heroPosterSrc?: string;
+  heroPosterSrc: string;
+  heroMobileVideoSrc?: string;
   topLinks: WorkProjectLink[];
   details: WorkProjectCaseStudyDetail[];
   sections: WorkProjectCaseStudySection[];
@@ -34,6 +35,7 @@ export interface WorkProject {
   title: string;
   subtitle?: string;
   mediaSrc: string;
+  mobileMediaSrc?: string;
   posterSrc?: string;
   links?: WorkProjectLink[];
   interaction: WorkProjectInteraction;
@@ -46,7 +48,8 @@ const luminarCollageCaseStudy: WorkProjectCaseStudy = {
   title: 'Luminar Collage',
   iconSrc: '/case-studies/luminar-collage/collage-icon.png',
   heroVideoSrc: '/collage-onboarding-p.mp4',
-  heroPosterSrc: '/case-studies/luminar-collage/section-1.jpg',
+  heroPosterSrc: '/video/collage-onboarding-p-first-frame.webp',
+  heroMobileVideoSrc: '/video/collage-onboarding-p-mobile.mp4',
   topLinks: [
     { text: 'Jitter', url: 'https://jitter.video/file/?id=9BLlSYNaJvuDBolLxiBV6' },
     { text: 'App Store', url: 'https://apps.apple.com/ua/app/luminar-collage-photo-maker/id6743317674' }
@@ -93,7 +96,8 @@ export const workProjects: WorkProject[] = [
     title: 'Luminar Collage',
     subtitle: 'Case Study',
     mediaSrc: '/collage-onboarding-p.mp4',
-    posterSrc: '/collage-1-min.jpg',
+    mobileMediaSrc: '/video/collage-onboarding-p-mobile.mp4',
+    posterSrc: '/video/collage-onboarding-p-first-frame.webp',
     interaction: 'route',
     slug: 'luminar-collage',
     caseStudy: luminarCollageCaseStudy
@@ -103,7 +107,8 @@ export const workProjects: WorkProject[] = [
     title: 'Light Depth',
     subtitle: 'Feature',
     mediaSrc: '/light-depth.mp4',
-    posterSrc: '/light-depth-poster.jpg',
+    mobileMediaSrc: '/video/light-depth-mobile.mp4',
+    posterSrc: '/video/light-depth-first-frame.webp',
     links: [
       {
         text: 'Watch',
@@ -118,7 +123,8 @@ export const workProjects: WorkProject[] = [
     title: 'AI Bookshelf',
     subtitle: 'Concept',
     mediaSrc: '/bookshelf-video.mp4',
-    posterSrc: '/bookshelf-ai-min.jpg',
+    mobileMediaSrc: '/video/bookshelf-video-mobile.mp4',
+    posterSrc: '/video/bookshelf-video-first-frame.webp',
     links: [
       {
         text: 'Prototype',

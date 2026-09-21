@@ -64,6 +64,8 @@ function LuminarCasePage({ project }: { project: WorkProject }) {
         <div className="relative aspect-[944/531] shrink-0 w-full bg-[#0f0f0f]">
           <CaseStudyHeroMedia
             src={caseStudy.heroVideoSrc}
+            posterSrc={caseStudy.heroPosterSrc}
+            mobileSrc={caseStudy.heroMobileVideoSrc}
             eager
           />
         </div>
@@ -118,7 +120,7 @@ function LuminarCasePage({ project }: { project: WorkProject }) {
             <BlurRevealImage
               src={src}
               alt={`Luminar Collage section ${index + 1}`}
-              sizes="(max-width: 800px) calc(100vw - 16px), 800px"
+              sizes="(max-width: 767px) calc(100vw - 16px), calc(75vw - 16px)"
               quality={85}
               blurDataURL={blurDataMap[src]}
             />
@@ -149,6 +151,8 @@ function LightDepthPlaceholderPage({ project }: { project: WorkProject }) {
           <div className="relative aspect-[944/531] w-full bg-[#0f0f0f]">
             <CaseStudyHeroMedia
               src={project.mediaSrc}
+              posterSrc={project.posterSrc!}
+              mobileSrc={project.mobileMediaSrc}
               eager
             />
           </div>

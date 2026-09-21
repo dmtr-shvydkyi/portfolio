@@ -1,8 +1,8 @@
 export type PageTransitionDirection = 'forward' | 'back';
-export type PageTransitionStage = 'leaving' | 'between' | 'entering';
+export type PageTransitionStage = 'pending' | 'leaving' | 'between' | 'entering';
 
 export const CONTENT_AREA_SELECTOR = '[data-content-area]';
-export const PAGE_TRANSITION_EXIT_DURATION_FALLBACK_MS = 160;
+export const PAGE_TRANSITION_EXIT_DURATION_FALLBACK_MS = 0;
 export const PAGE_TRANSITION_ENTER_DURATION_FALLBACK_MS = 160;
 
 export function getContentAreaElement() {

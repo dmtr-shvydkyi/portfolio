@@ -16,7 +16,6 @@ import {
   getContentAreaElement,
   PAGE_TRANSITION_ENTER_DURATION_FALLBACK_MS,
   readDurationFromCss,
-  setPageTransitionStage,
 } from '@/lib/pageTransition';
 
 interface PersistentShellProps {
@@ -75,33 +74,16 @@ export default function PersistentShell({ children }: PersistentShellProps) {
       return;
     }
 
-    if (root.dataset.transitionStage !== 'leaving' && root.dataset.transitionStage !== 'between') {
-      return;
-    }
-
+    if (root.dataset.transitionStage !== 'pending') return;
     const contentArea = getContentAreaElement();
-    if (!contentArea) {
-      clearPageTransitionState(root);
-      return;
-    }
+    clearPageTransitionState(root);
+    if (!contentArea) return;
 
-    const enterDurationMs = readDurationFromCss(
-      ENTER_DURATION_VARIABLE,
-      PAGE_TRANSITION_ENTER_DURATION_FALLBACK_MS,
-    );
-
-    contentArea.style.pointerEvents = 'none';
-    contentArea.style.willChange = 'opacity';
-    setPageTransitionStage(root, 'entering');
-
-    window.requestAnimationFrame(() => {
-      delete root.dataset.transitionStage;
-      window.setTimeout(() => {
-        contentArea.style.pointerEvents = '';
-        contentArea.style.willChange = '';
-        delete root.dataset.transitionDirection;
-      }, enterDurationMs);
+    const animation = contentArea.animate([{ opacity: 0 }, { opacity: 1 }], {
+      duration: readDurationFromCss(ENTER_DURATION_VARIABLE, PAGE_TRANSITION_ENTER_DURATION_FALLBACK_MS),
+      easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
     });
+    return () => animation.cancel();
   }, [pathname]);
 
   return (

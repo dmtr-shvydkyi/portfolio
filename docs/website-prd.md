@@ -2,7 +2,7 @@
 
 Status: Active
 Owner: Portfolio maintainer
-Last updated: 2026-03-01
+Last updated: 2026-09-20
 Canonical path: `docs/website-prd.md`
 
 ## 1) Purpose
@@ -97,7 +97,7 @@ Global layout behavior:
 Global interaction model:
 - Keyboard sounds on most tab/button/link interactions.
 - Number keys and arrow keys control section scrolling globally.
-- Site-level white overlay fades out on initial load.
+- First-viewport video posters render immediately and are extracted from the actual first decoded video frame.
 
 ## 7) Detailed Feature Specification
 
@@ -142,7 +142,7 @@ Render model:
   - About (viewport-fit section with title row)
   - Play (viewport-fit section with title row)
   - CV (viewport-fit section with title row)
-- Bottom tab UI remains persistent and acts as smooth-scroll controls.
+- Bottom tab UI remains persistent. Nearby section changes use an interruptible 260ms ease-out scroll; jumps farther than 1.5 viewports are immediate. Keyboard navigation is immediate. Wheel, touch, or pointer input cancels an in-progress scroll.
 - Active tab highlight is derived from visible section (IntersectionObserver + nearest-top fallback).
 
 URL and history:
@@ -174,10 +174,17 @@ Behavior:
 - First section in the long landing, with cards-first treatment and no extra title row.
 - Vertical list of media cards (video/image).
 - Cards show overlay metadata and outbound links on hover.
-- Videos autoplay, loop, muted, and attempt recovery on `canplay`.
+- Cards and case-study heroes share `ViewportVideo`.
+- Each video uses a poster extracted from its own first decoded frame; poster and video share the same crop and object position.
+- The poster remains underneath the video until a decoded playing frame is available (`requestVideoFrameCallback`, with a ready-state fallback). The video appears over it in 150ms.
+- Playback is muted, inline, and looping. Leaving the viewport or hiding the document pauses playback; returning resumes the existing time without seeking back to the poster.
+- On touch devices, only the active card may load and play. Desktop cards can preload metadata within 200px of the scroll viewport and play once at least 15% visible.
+- Video loading is independent per card, with no dependency on another video's transition or success. Load errors and autoplay denial leave the real first-frame poster visible.
+- Viewports up to 767px use a 960px-wide, 30fps H.264 mobile asset. The source is selected once at mount to prevent restarting clips during resize. Desktop keeps the original video.
+- Work images use quality 75; case-study images retain quality 85. Both use a visible independent blur placeholder and a 150ms image reveal. Case-study `sizes` follows actual content width (viewport minus 16px on mobile; 75vw minus 16px on desktop).
 
 Content source:
-- Card data is hardcoded in `ScrollCards.tsx`.
+- Card data, mobile video paths, and first-frame poster paths are defined in `src/data/workProjects.ts`.
 - Assets are served from `/public/*`.
 
 ### 7.5 About Section
@@ -188,13 +195,13 @@ Files:
 
 Behavior:
 - Displays biography copy with inline outbound links.
-- Applies pointer-trail glitch scramble effect to non-interactive text characters.
+- Applies pointer-trail glitch scramble effect to non-interactive text characters only while About is visible on a fine-pointer hover device. Other views retain ordinary text without per-character spans.
 - Interactive elements (links, buttons, form controls) are intentionally excluded from scrambling.
 - On home route, About runs in landing mode (no nested independent scroll; section fit handled by parent).
 
 Accessibility/resilience:
 - Effect is disabled when `prefers-reduced-motion: reduce`.
-- Character centers are recomputed on resize and scroll for accurate effect area.
+- Character centers are read only on pointer movement after entry, scroll, or resize invalidates them. Scroll does not measure characters. Only affected characters are updated, unchanged text is never rewritten, and the animation loop stops when the trail has settled. Leaving the viewport or hiding the document stops the effect.
 
 ### 7.6 Play Section (Snake Game)
 
@@ -435,6 +442,16 @@ Technical improvement opportunities:
 - Real-time multiplayer or shared game sessions
 
 ## 16) Change Log
+
+### 2026-09-20
+- Added a shared visibility-aware video component for cards and case-study heroes with actual first-frame posters, mobile variants, independent loading, and pause/resume without restarting.
+- Added `npm run video:assets` to reproducibly generate committed mobile videos and first-frame WebP posters. Run it after changing source MP4s; it requires FFmpeg locally, while production builds do not.
+- Removed serialized video loading tied to fade completion; failed or autoplay-blocked clips retain their poster without blocking other cards.
+- Reduced image/video reveal duration to 150ms, made image placeholders independently visible, reduced Work image quality to 75, and corrected case-study responsive image sizes.
+- Reworked About glitch to activate only for visible desktop text, mutate only changed active characters, stop when idle, and avoid per-character reads on scroll.
+- Route navigation starts immediately with the old page still interactive during loading; the destination gets a cancellable 160ms opacity reveal. No exit timer or pointer-event lock is applied.
+- Shortened nearby section scrolling to 260ms, made long jumps and keyboard navigation immediate, and allowed user gestures to cancel scrolling.
+- Scope excludes deferred Snake mounting, gameplay changes, global reduced-motion changes, button transition refactoring, backdrop-filter tuning, and metrics activation.
 
 ### 2026-03-01
 - Refactored home route from absolute tab-swapped panels to one anchored long-form landing.
